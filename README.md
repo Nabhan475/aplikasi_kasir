@@ -1,4 +1,4 @@
-# kasir_bubur_ayam_72
+# aplikasi_kasir
 
 A new Flutter project.
 
