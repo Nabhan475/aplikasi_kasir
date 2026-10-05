@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import 'register_screen.dart';
 import 'main_navigation.dart';
 
@@ -15,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   String selectedRole = 'Kasir';
   bool obscurePassword = true;
+  bool isLoading = false;
 
   static const Color primaryOrange = Color(0xFFFF5A1F);
   static const Color lightField = Color(0xFFF4F4F4);
@@ -26,31 +29,87 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void login() {
-    if (emailController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty) {
+  Future<void> login() async {
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan password harus diisi')),
+        const SnackBar(
+          content: Text('Email dan password harus diisi'),
+        ),
       );
       return;
     }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => MainNavigation(role: selectedRole),
-      ),
-    );
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MainNavigation(
+            role: selectedRole,
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message = 'Login gagal';
+
+      if (e.code == 'invalid-email') {
+        message = 'Format email tidak valid';
+      } else if (e.code == 'user-not-found') {
+        message = 'Akun tidak ditemukan';
+      } else if (e.code == 'wrong-password') {
+        message = 'Password salah';
+      } else if (e.code == 'invalid-credential') {
+        message = 'Email atau password salah';
+      } else {
+        message = e.message ?? 'Login gagal';
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
-  InputDecoration customInput({required String hint, Widget? suffixIcon}) {
+  InputDecoration customInput({
+    required String hint,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF9E9E9E), fontSize: 15),
+      hintStyle: const TextStyle(
+        color: Color(0xFF9E9E9E),
+        fontSize: 15,
+      ),
       filled: true,
       fillColor: lightField,
       suffixIcon: suffixIcon,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 18,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(24),
         borderSide: BorderSide.none,
@@ -61,7 +120,10 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(24),
-        borderSide: const BorderSide(color: primaryOrange, width: 1.3),
+        borderSide: const BorderSide(
+          color: primaryOrange,
+          width: 1.3,
+        ),
       ),
     );
   }
@@ -73,9 +135,6 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // =========================
-            // HEADER GRADIENT ORANGE
-            // =========================
             Container(
               height: 220,
               width: double.infinity,
@@ -104,15 +163,17 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
 
-            // =========================
-            // CARD PUTIH
-            // =========================
             Expanded(
               child: Transform.translate(
                 offset: const Offset(0, -32),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 38, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    24,
+                    38,
+                    24,
+                    24,
+                  ),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -123,9 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        // =========================
                         // GOOGLE BUTTON
-                        // =========================
                         SizedBox(
                           width: double.infinity,
                           height: 55,
@@ -134,13 +193,17 @@ class _LoginScreenState extends State<LoginScreen> {
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor: Colors.black87,
-                              side: const BorderSide(color: Color(0xFFDDDDDD)),
+                              side: const BorderSide(
+                                color: Color(0xFFDDDDDD),
+                              ),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                                borderRadius:
+                                    BorderRadius.circular(30),
                               ),
                             ),
                             child: const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisAlignment:
+                                  MainAxisAlignment.center,
                               children: [
                                 Text(
                                   'G',
@@ -153,7 +216,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 SizedBox(width: 12),
                                 Text(
                                   'Sign in with Google',
-                                  style: TextStyle(fontSize: 15),
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ],
                             ),
@@ -164,25 +229,27 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const Text(
                           'or',
-                          style: TextStyle(color: Colors.grey, fontSize: 15),
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 15,
+                          ),
                         ),
 
                         const SizedBox(height: 20),
 
-                        // =========================
                         // EMAIL
-                        // =========================
                         TextField(
                           controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: customInput(hint: 'Email'),
+                          keyboardType:
+                              TextInputType.emailAddress,
+                          decoration: customInput(
+                            hint: 'Email',
+                          ),
                         ),
 
                         const SizedBox(height: 12),
 
-                        // =========================
                         // PASSWORD
-                        // =========================
                         TextField(
                           controller: passwordController,
                           obscureText: obscurePassword,
@@ -191,13 +258,15 @@ class _LoginScreenState extends State<LoginScreen> {
                             suffixIcon: IconButton(
                               onPressed: () {
                                 setState(() {
-                                  obscurePassword = !obscurePassword;
+                                  obscurePassword =
+                                      !obscurePassword;
                                 });
                               },
                               icon: Icon(
                                 obscurePassword
                                     ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
+                                    : Icons
+                                        .visibility_off_outlined,
                                 color: Colors.grey,
                               ),
                             ),
@@ -206,71 +275,57 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         const SizedBox(height: 12),
 
-                        // =========================
-                        // ROLE
-                        // =========================
-                        DropdownButtonFormField<String>(
-                          value: selectedRole,
-                          isExpanded: true,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.grey,
-                          ),
-                          decoration: customInput(hint: 'Role'),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'Kasir',
-                              child: Text('Kasir'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Admin',
-                              child: Text('Admin'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                selectedRole = value;
-                              });
-                            }
-                          },
-                        ),
-
                         const SizedBox(height: 24),
 
-                        // =========================
-                        // LOGIN BUTTON ORANGE
-                        // =========================
+                        // LOGIN BUTTON
                         SizedBox(
                           width: double.infinity,
                           height: 55,
                           child: ElevatedButton(
-                            onPressed: login,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: primaryOrange,
-                              foregroundColor: Colors.white,
+                            onPressed:
+                                isLoading ? null : login,
+                            style:
+                                ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  primaryOrange,
+                              foregroundColor:
+                                  Colors.white,
                               elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                              shape:
+                                  RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.circular(
+                                  30,
+                                ),
                               ),
                             ),
-                            child: const Text(
-                              'Login',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child:
+                                        CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Login',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight:
+                                          FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
 
                         const SizedBox(height: 24),
 
-                        // =========================
                         // REGISTER
-                        // =========================
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment:
+                              MainAxisAlignment.center,
                           children: [
                             const Text(
                               'Belum punya akun? ',
@@ -284,8 +339,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder:
-                                        (context) => const RegisterScreen(),
+                                    builder: (context) =>
+                                        const RegisterScreen(),
                                   ),
                                 );
                               },
@@ -294,8 +349,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                 style: TextStyle(
                                   color: primaryOrange,
                                   fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
+                                  fontWeight:
+                                      FontWeight.bold,
+                                  decoration:
+                                      TextDecoration.underline,
                                 ),
                               ),
                             ),

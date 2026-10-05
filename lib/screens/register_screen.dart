@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,8 +14,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  String selectedRole = 'Kasir';
   bool obscurePassword = true;
+  bool isLoading = false;
 
   static const Color primaryOrange = Color(0xFFFF5A1F);
   static const Color lightField = Color(0xFFF4F4F4);
@@ -26,31 +28,118 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void register() {
-    if (usernameController.text.trim().isEmpty ||
-        emailController.text.trim().isEmpty ||
-        passwordController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Semua data harus diisi')));
+  Future<void> register() async {
+    String username = usernameController.text.trim();
+    String email = emailController.text.trim();
+    String password = passwordController.text.trim();
+
+    if (username.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Semua data harus diisi'),
+        ),
+      );
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Registrasi berhasil')));
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password minimal 6 karakter'),
+        ),
+      );
+      return;
+    }
 
-    Navigator.pop(context);
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      // 1. BUAT AKUN DI FIREBASE AUTHENTICATION
+      UserCredential userCredential =
+          await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // 2. SIMPAN DATA USER KE FIRESTORE
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .set({
+        'username': username,
+        'email': email,
+        'role': 'user',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registrasi berhasil, silakan login'),
+        ),
+      );
+
+      // KEMBALI KE HALAMAN LOGIN
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      String message = 'Registrasi gagal';
+
+      if (e.code == 'email-already-in-use') {
+        message = 'Email sudah terdaftar';
+      } else if (e.code == 'invalid-email') {
+        message = 'Format email tidak valid';
+      } else if (e.code == 'weak-password') {
+        message = 'Password terlalu lemah';
+      } else if (e.code == 'operation-not-allowed') {
+        message = 'Login Email/Password belum diaktifkan di Firebase';
+      } else {
+        message = e.message ?? 'Registrasi gagal';
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    }
   }
 
-  InputDecoration customInput({required String hint, Widget? suffixIcon}) {
+  InputDecoration customInput({
+    required String hint,
+    Widget? suffixIcon,
+  }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF9E9E9E), fontSize: 15),
+      hintStyle: const TextStyle(
+        color: Color(0xFF9E9E9E),
+        fontSize: 15,
+      ),
       filled: true,
       fillColor: lightField,
       suffixIcon: suffixIcon,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 18,
+      ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(24),
         borderSide: BorderSide.none,
@@ -61,7 +150,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(24),
-        borderSide: const BorderSide(color: primaryOrange, width: 1.3),
+        borderSide: const BorderSide(
+          color: primaryOrange,
+          width: 1.3,
+        ),
       ),
     );
   }
@@ -73,9 +165,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // =========================
-            // HEADER GRADIENT ORANGE
-            // =========================
             Container(
               height: 220,
               width: double.infinity,
@@ -104,15 +193,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
 
-            // =========================
-            // CARD PUTIH
-            // =========================
             Expanded(
               child: Transform.translate(
                 offset: const Offset(0, -32),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(24, 38, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(
+                    24,
+                    38,
+                    24,
+                    24,
+                  ),
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.only(
@@ -123,24 +214,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        // USERNAME
                         TextField(
                           controller: usernameController,
-                          decoration: customInput(hint: 'Username'),
+                          decoration: customInput(
+                            hint: 'Username',
+                          ),
                         ),
 
                         const SizedBox(height: 12),
 
-                        // EMAIL
                         TextField(
                           controller: emailController,
                           keyboardType: TextInputType.emailAddress,
-                          decoration: customInput(hint: 'Email'),
+                          decoration: customInput(
+                            hint: 'Email',
+                          ),
                         ),
 
                         const SizedBox(height: 12),
 
-                        // PASSWORD
                         TextField(
                           controller: passwordController,
                           obscureText: obscurePassword,
@@ -162,67 +254,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 12),
-
-                        // ROLE
-                        DropdownButtonFormField<String>(
-                          value: selectedRole,
-                          isExpanded: true,
-                          icon: const Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.grey,
-                          ),
-                          decoration: customInput(hint: 'Role'),
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'Kasir',
-                              child: Text('Kasir'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'Admin',
-                              child: Text('Admin'),
-                            ),
-                          ],
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() {
-                                selectedRole = value;
-                              });
-                            }
-                          },
-                        ),
-
                         const SizedBox(height: 24),
 
-                        // REGISTER BUTTON
                         SizedBox(
                           width: double.infinity,
                           height: 55,
                           child: ElevatedButton(
-                            onPressed: register,
+                            onPressed: isLoading ? null : register,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primaryOrange,
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(30),
+                                borderRadius:
+                                    BorderRadius.circular(30),
                               ),
                             ),
-                            child: const Text(
-                              'REGISTER',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'REGISTER',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                           ),
                         ),
 
                         const SizedBox(height: 24),
 
-                        // BACK TO LOGIN
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisAlignment:
+                              MainAxisAlignment.center,
                           children: [
                             const Text(
                               'Sudah punya akun? ',
@@ -241,7 +312,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   color: primaryOrange,
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  decoration: TextDecoration.underline,
+                                  decoration:
+                                      TextDecoration.underline,
                                 ),
                               ),
                             ),
