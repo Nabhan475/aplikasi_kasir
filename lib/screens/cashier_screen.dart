@@ -10,10 +10,12 @@ const Color softOrange = Color(0xFFFFEEE8);
 // =========================
 // MODEL KERANJANG
 // =========================
+
 class CartItem {
   final String id;
   final String name;
   final int price;
+
   int qty;
 
   CartItem({
@@ -27,6 +29,7 @@ class CartItem {
 // =========================
 // HALAMAN KASIR
 // =========================
+
 class CashierScreen extends StatefulWidget {
   const CashierScreen({super.key});
 
@@ -37,8 +40,81 @@ class CashierScreen extends StatefulWidget {
 class _CashierScreenState extends State<CashierScreen> {
   final Map<String, CartItem> cart = {};
 
-  int get totalItems => cart.values.fold(0, (s, i) => s + i.qty);
-  int get totalPrice => cart.values.fold(0, (s, i) => s + i.qty * i.price);
+  String? businessId;
+  bool loadingBusiness = true;
+
+  int get totalItems {
+    return cart.values.fold(0, (sum, item) => sum + item.qty);
+  }
+
+  int get totalPrice {
+    return cart.values.fold(0, (sum, item) => sum + (item.qty * item.price));
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    loadBusiness();
+  }
+
+  // =================================
+  // AMBIL BUSINESS ID USER LOGIN
+  // =================================
+
+  Future<void> loadBusiness() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        if (mounted) {
+          setState(() {
+            loadingBusiness = false;
+          });
+        }
+        return;
+      }
+
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+
+      final data = doc.data();
+
+      String? id = data?['businessId']?.toString();
+
+      // Untuk akun admin lama yang belum mempunyai businessId
+      // maka gunakan UID sendiri.
+      if ((id == null || id.isEmpty) &&
+          data?['role']?.toString().toLowerCase() == 'admin') {
+        id = user.uid;
+
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'businessId': id,
+          'ownerId': user.uid,
+        }, SetOptions(merge: true));
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        businessId = id;
+        loadingBusiness = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        loadingBusiness = false;
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal mengambil data usaha: $e')));
+    }
+  }
 
   void addToCart(String id, String name, int price) {
     setState(() {
@@ -51,17 +127,41 @@ class _CashierScreenState extends State<CashierScreen> {
   }
 
   Future<void> openCart() async {
+    if (businessId == null) return;
+
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => CartScreen(cart: cart)),
+      MaterialPageRoute(
+        builder: (_) => CartScreen(cart: cart, businessId: businessId!),
+      ),
     );
-    if (mounted) setState(() {});
+
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (loadingBusiness) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (businessId == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'Data usaha tidak ditemukan.\n'
+            'Silakan login ulang.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
+
       appBar: AppBar(
         backgroundColor: primaryOrange,
         foregroundColor: Colors.white,
@@ -71,6 +171,7 @@ class _CashierScreenState extends State<CashierScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
+
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -81,43 +182,62 @@ class _CashierScreenState extends State<CashierScreen> {
                 'Daftar Menu',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
               ),
+
               const SizedBox(height: 6),
+
               const Text(
                 'Pilih menu yang ingin ditambahkan',
                 style: TextStyle(color: Colors.grey, fontSize: 14),
               ),
+
               const SizedBox(height: 20),
 
-              // ============================
-              // GRID MENU (dari Firestore)
-              // ============================
+              // =====================================
+              // GRID MENU BERDASARKAN BUSINESS ID
+              // =====================================
               Expanded(
                 child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: FirebaseFirestore.instance
-                      .collection('menus')
-                      .where('isAvailable', isEqualTo: true)
-                      .snapshots(),
+                  stream:
+                      FirebaseFirestore.instance
+                          .collection('menus')
+                          .where('businessId', isEqualTo: businessId)
+                          .snapshots(),
+
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
                         child: Text('Terjadi kesalahan: ${snapshot.error}'),
                       );
                     }
+
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    final docs = snapshot.data!.docs.toList()
-                      ..sort((a, b) => (a.data()['name'] ?? '')
-                          .toString()
-                          .toLowerCase()
-                          .compareTo(
-                              (b.data()['name'] ?? '').toString().toLowerCase()));
+                    // Hanya tampilkan menu yang tersedia
+                    final docs =
+                        snapshot.data!.docs.where((doc) {
+                          final data = doc.data();
+
+                          return data['isAvailable'] == true;
+                        }).toList();
+
+                    // Urutkan berdasarkan nama
+                    docs.sort((a, b) {
+                      final nameA =
+                          (a.data()['name'] ?? '').toString().toLowerCase();
+
+                      final nameB =
+                          (b.data()['name'] ?? '').toString().toLowerCase();
+
+                      return nameA.compareTo(nameB);
+                    });
 
                     if (docs.isEmpty) {
                       return const Center(
                         child: Text(
-                          'Belum ada menu tersedia.\nMinta admin untuk menambahkan menu.',
+                          'Belum ada menu tersedia.\n'
+                          'Minta admin untuk menambahkan menu.',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.grey),
                         ),
@@ -127,17 +247,20 @@ class _CashierScreenState extends State<CashierScreen> {
                     return GridView.builder(
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.72,
-                      ),
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                            childAspectRatio: 0.72,
+                          ),
                       itemCount: docs.length,
                       itemBuilder: (context, index) {
                         final doc = docs[index];
                         final data = doc.data();
+
                         final name = (data['name'] ?? '').toString();
+
                         final price = (data['price'] as num?)?.toInt() ?? 0;
+
                         final imageUrl = (data['imageUrl'] ?? '').toString();
 
                         return MenuItemCard(
@@ -145,7 +268,9 @@ class _CashierScreenState extends State<CashierScreen> {
                           price: price,
                           imageUrl: imageUrl,
                           qtyInCart: cart[doc.id]?.qty ?? 0,
-                          onAdd: () => addToCart(doc.id, name, price),
+                          onAdd: () {
+                            addToCart(doc.id, name, price);
+                          },
                         );
                       },
                     );
@@ -196,6 +321,7 @@ class _CashierScreenState extends State<CashierScreen> {
 // =========================
 // KARTU MENU
 // =========================
+
 class MenuItemCard extends StatelessWidget {
   final String name;
   final int price;
@@ -251,16 +377,18 @@ class MenuItemCard extends StatelessWidget {
                       topLeft: Radius.circular(18),
                       topRight: Radius.circular(18),
                     ),
-                    child: imageUrl.isEmpty
-                        ? _placeholder()
-                        : Image.network(
-                            imageUrl,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          ),
+                    child:
+                        imageUrl.isEmpty
+                            ? _placeholder()
+                            : Image.network(
+                              imageUrl,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => _placeholder(),
+                            ),
                   ),
                 ),
+
                 if (qtyInCart > 0)
                   Positioned(
                     top: 8,
@@ -287,6 +415,7 @@ class MenuItemCard extends StatelessWidget {
               ],
             ),
           ),
+
           Padding(
             padding: const EdgeInsets.all(12),
             child: Column(
@@ -301,7 +430,9 @@ class MenuItemCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 const SizedBox(height: 6),
+
                 Text(
                   formatRupiah(price),
                   style: const TextStyle(
@@ -310,7 +441,9 @@ class MenuItemCard extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
+
                 const SizedBox(height: 10),
+
                 SizedBox(
                   width: double.infinity,
                   height: 38,
@@ -343,13 +476,17 @@ class MenuItemCard extends StatelessWidget {
   }
 }
 
-// =========================
+// =====================================
 // HALAMAN KERANJANG + CHECKOUT
-// =========================
+// =====================================
+
 class CartScreen extends StatefulWidget {
   final Map<String, CartItem> cart;
 
-  const CartScreen({super.key, required this.cart});
+  // Business ID diterima dari CashierScreen
+  final String businessId;
+
+  const CartScreen({super.key, required this.cart, required this.businessId});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -360,42 +497,76 @@ class _CartScreenState extends State<CartScreen> {
 
   Map<String, CartItem> get cart => widget.cart;
 
-  int get totalItems => cart.values.fold(0, (s, i) => s + i.qty);
-  int get totalPrice => cart.values.fold(0, (s, i) => s + i.qty * i.price);
+  int get totalItems {
+    return cart.values.fold(0, (sum, item) => sum + item.qty);
+  }
+
+  int get totalPrice {
+    return cart.values.fold(0, (sum, item) => sum + item.qty * item.price);
+  }
 
   void changeQty(CartItem item, int delta) {
     setState(() {
       item.qty += delta;
-      if (item.qty <= 0) cart.remove(item.id);
+
+      if (item.qty <= 0) {
+        cart.remove(item.id);
+      }
     });
-    if (cart.isEmpty) Navigator.pop(context);
+
+    if (cart.isEmpty) {
+      Navigator.pop(context);
+    }
   }
+
+  // ===============================
+  // CHECKOUT
+  // ===============================
 
   Future<void> checkout() async {
     if (cart.isEmpty) return;
 
     final messenger = ScaffoldMessenger.of(context);
+
     final navigator = Navigator.of(context);
 
-    setState(() => isLoading = true);
+    setState(() {
+      isLoading = true;
+    });
 
     try {
       final user = FirebaseAuth.instance.currentUser;
 
+      if (user == null) {
+        throw Exception('User belum login');
+      }
+
       await FirebaseFirestore.instance.collection('transactions').add({
-        'items': cart.values
-            .map((i) => {
-                  'menuId': i.id,
-                  'name': i.name,
-                  'price': i.price,
-                  'qty': i.qty,
-                  'subtotal': i.price * i.qty,
-                })
-            .toList(),
+        // PENTING
+        // transaksi hanya milik bisnis ini
+        'businessId': widget.businessId,
+
+        'items':
+            cart.values
+                .map(
+                  (item) => {
+                    'menuId': item.id,
+                    'name': item.name,
+                    'price': item.price,
+                    'qty': item.qty,
+                    'subtotal': item.price * item.qty,
+                  },
+                )
+                .toList(),
+
         'totalItems': totalItems,
+
         'total': totalPrice,
-        'cashierId': user?.uid,
-        'cashierEmail': user?.email,
+
+        'cashierId': user.uid,
+
+        'cashierEmail': user.email,
+
         'createdAt': FieldValue.serverTimestamp(),
       });
 
@@ -404,13 +575,16 @@ class _CartScreenState extends State<CartScreen> {
       messenger.showSnackBar(
         const SnackBar(content: Text('Checkout berhasil')),
       );
+
       navigator.pop();
     } catch (e) {
       if (!mounted) return;
-      setState(() => isLoading = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Checkout gagal: $e')),
-      );
+
+      setState(() {
+        isLoading = false;
+      });
+
+      messenger.showSnackBar(SnackBar(content: Text('Checkout gagal: $e')));
     }
   }
 
@@ -420,6 +594,7 @@ class _CartScreenState extends State<CartScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
+
       appBar: AppBar(
         backgroundColor: primaryOrange,
         foregroundColor: Colors.white,
@@ -429,6 +604,7 @@ class _CartScreenState extends State<CartScreen> {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
+
       body: SafeArea(
         child: Column(
           children: [
@@ -439,6 +615,7 @@ class _CartScreenState extends State<CartScreen> {
                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final item = items[index];
+
                   return Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -470,11 +647,15 @@ class _CartScreenState extends State<CartScreen> {
                             ],
                           ),
                         ),
+
                         IconButton(
-                          onPressed: () => changeQty(item, -1),
+                          onPressed: () {
+                            changeQty(item, -1);
+                          },
                           icon: const Icon(Icons.remove_circle_outline),
                           color: primaryOrange,
                         ),
+
                         Text(
                           '${item.qty}',
                           style: const TextStyle(
@@ -482,8 +663,11 @@ class _CartScreenState extends State<CartScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+
                         IconButton(
-                          onPressed: () => changeQty(item, 1),
+                          onPressed: () {
+                            changeQty(item, 1);
+                          },
                           icon: const Icon(Icons.add_circle_outline),
                           color: primaryOrange,
                         ),
@@ -493,6 +677,7 @@ class _CartScreenState extends State<CartScreen> {
                 },
               ),
             ),
+
             Container(
               padding: const EdgeInsets.all(16),
               decoration: const BoxDecoration(
@@ -508,6 +693,7 @@ class _CartScreenState extends State<CartScreen> {
                         'Total ($totalItems item)',
                         style: const TextStyle(fontSize: 15),
                       ),
+
                       Text(
                         formatRupiah(totalPrice),
                         style: const TextStyle(
@@ -518,7 +704,9 @@ class _CartScreenState extends State<CartScreen> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 14),
+
                   SizedBox(
                     width: double.infinity,
                     height: 55,
@@ -532,22 +720,23 @@ class _CartScreenState extends State<CartScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
+                      child:
+                          isLoading
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'Checkout',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            )
-                          : const Text(
-                              'Checkout',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                     ),
                   ),
                 ],
