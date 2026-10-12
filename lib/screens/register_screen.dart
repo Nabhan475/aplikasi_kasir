@@ -70,7 +70,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           .set({
         'username': username,
         'email': email,
-        'role': 'user',
+        'role': 'admin',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
