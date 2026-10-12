@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'register_screen.dart';
 import 'main_navigation.dart';
@@ -15,7 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  String selectedRole = 'Kasir';
   bool obscurePassword = true;
   bool isLoading = false;
 
@@ -47,10 +47,20 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      // Ambil role dari Firestore (users/{uid}/role)
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(cred.user!.uid)
+          .get();
+
+      final roleDb =
+          (doc.data()?['role'] ?? 'user').toString().toLowerCase();
+      final appRole = roleDb == 'admin' ? 'Admin' : 'Kasir';
 
       if (!mounted) return;
 
@@ -58,7 +68,7 @@ class _LoginScreenState extends State<LoginScreen> {
         context,
         MaterialPageRoute(
           builder: (context) => MainNavigation(
-            role: selectedRole,
+            role: appRole,
           ),
         ),
       );
