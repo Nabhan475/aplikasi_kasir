@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function ownsBusiness(businessId) {
+      return signedIn()
+        && request.auth.uid == businessId
+        && me().role == 'admin'
+        && me().businessId == businessId;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn()
+        && (request.auth.uid == userId
+          || resource.data.businessId == me().businessId);
+
+      allow create: if signedIn()
+        && (
+          (request.auth.uid == userId
+            && request.resource.data.role == 'admin'
+            && request.resource.data.businessId == userId
+            && request.resource.data.ownerId == userId)
+          || (me().role == 'admin'
+            && request.resource.data.role == 'kasir'
+            && request.resource.data.businessId == me().businessId
+            && request.resource.data.createdBy == request.auth.uid)
+        );
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && resource.data.role == 'admin'
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.businessId == userId
+        && request.resource.data.ownerId == userId
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['businessId', 'ownerId']);
+
+      allow delete: if false;
+    }
+
+    match /users/{businessId}/menus/{menuId} {
+      allow read: if signedIn() && me().businessId == businessId;
+      allow create, update: if ownsBusiness(businessId)
+        && request.resource.data.businessId == businessId;
+      allow delete: if ownsBusiness(businessId);
+    }
+
+    match /users/{businessId}/transactions/{transactionId} {
+      allow read: if signedIn() && me().businessId == businessId;
+      allow create: if signedIn()
+        && me().businessId == businessId
+        && request.resource.data.businessId == businessId;
+    }
+  }
+}

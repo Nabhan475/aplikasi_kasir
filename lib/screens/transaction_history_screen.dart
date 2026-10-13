@@ -142,11 +142,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       // HANYA TRANSAKSI DARI BUSINESS INI
       // ======================================
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream:
-            FirebaseFirestore.instance
-                .collection('transactions')
-                .where('businessId', isEqualTo: businessId)
-                .snapshots(),
+        stream: transactionsRef(businessId!).snapshots(),
 
         builder: (context, snapshot) {
           if (snapshot.hasError) {

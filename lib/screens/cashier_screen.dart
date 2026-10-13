@@ -36,9 +36,36 @@ class CashierScreen extends StatefulWidget {
 
 class _CashierScreenState extends State<CashierScreen> {
   final Map<String, CartItem> cart = {};
+  String? businessId;
+  bool loadingBusiness = true;
 
   int get totalItems => cart.values.fold(0, (s, i) => s + i.qty);
   int get totalPrice => cart.values.fold(0, (s, i) => s + i.qty * i.price);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBusiness();
+  }
+
+  Future<void> _loadBusiness() async {
+    try {
+      final id = await getBusinessId();
+      if (!mounted) return;
+      setState(() {
+        businessId = id;
+        loadingBusiness = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        loadingBusiness = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal mengambil data usaha: $e')),
+      );
+    }
+  }
 
   void addToCart(String id, String name, int price) {
     setState(() {
@@ -51,15 +78,34 @@ class _CashierScreenState extends State<CashierScreen> {
   }
 
   Future<void> openCart() async {
+    final id = businessId;
+    if (id == null) return;
+
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => CartScreen(cart: cart)),
+      MaterialPageRoute(
+        builder: (_) => CartScreen(cart: cart, businessId: id),
+      ),
     );
     if (mounted) setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
+    if (loadingBusiness) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (businessId == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text(
+            'Data usaha tidak ditemukan.\nSilakan login ulang.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
@@ -93,8 +139,7 @@ class _CashierScreenState extends State<CashierScreen> {
               // ============================
               Expanded(
                 child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: FirebaseFirestore.instance
-                      .collection('menus')
+                  stream: menusRef(businessId!)
                       .where('isAvailable', isEqualTo: true)
                       .snapshots(),
                   builder: (context, snapshot) {
@@ -348,8 +393,13 @@ class MenuItemCard extends StatelessWidget {
 // =========================
 class CartScreen extends StatefulWidget {
   final Map<String, CartItem> cart;
+  final String businessId;
 
-  const CartScreen({super.key, required this.cart});
+  const CartScreen({
+    super.key,
+    required this.cart,
+    required this.businessId,
+  });
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -382,7 +432,7 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
 
-      await FirebaseFirestore.instance.collection('transactions').add({
+      await transactionsRef(widget.businessId).add({
         'items': cart.values
             .map((i) => {
                   'menuId': i.id,
@@ -394,6 +444,7 @@ class _CartScreenState extends State<CartScreen> {
             .toList(),
         'totalItems': totalItems,
         'total': totalPrice,
+        'businessId': widget.businessId,
         'cashierId': user?.uid,
         'cashierEmail': user?.email,
         'createdAt': FieldValue.serverTimestamp(),

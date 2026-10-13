@@ -19,7 +19,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
   bool loadingBusiness = true;
 
   CollectionReference<Map<String, dynamic>> get _menus =>
-      FirebaseFirestore.instance.collection('menus');
+      menusRef(businessId!);
 
   @override
   void initState() {
@@ -190,7 +190,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       // HANYA MENU MILIK BUSINESS INI
       // ====================================
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: _menus.where('businessId', isEqualTo: businessId).snapshots(),
+        stream: _menus.snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Terjadi kesalahan: ${snapshot.error}'));
