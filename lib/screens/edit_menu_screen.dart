@@ -175,12 +175,15 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
         ),
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: primaryOrange,
-        foregroundColor: Colors.white,
-        onPressed: () => _openForm(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Tambah Menu'),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80), // tinggi navbar (56) + jarak bawah (10) + celah
+        child: FloatingActionButton.extended(
+          backgroundColor: primaryOrange,
+          foregroundColor: Colors.white,
+          onPressed: () => _openForm(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Tambah Menu'),
+        ),
       ),
 
       // ====================================
@@ -217,7 +220,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 150),
             itemCount: docs.length,
             separatorBuilder: (_, __) => const SizedBox(height: 10),
             itemBuilder: (context, index) {

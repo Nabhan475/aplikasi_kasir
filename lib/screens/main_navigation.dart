@@ -19,6 +19,9 @@ class MainNavigation extends StatefulWidget {
 class _MainNavigationState extends State<MainNavigation> {
   int currentIndex = 0;
 
+  // Halaman yang sudah pernah dikunjungi.
+  final Set<int> _visited = {0};
+
   static const Color primaryOrange = Color(0xFFFF5A1F);
 
   @override
@@ -53,7 +56,10 @@ class _MainNavigationState extends State<MainNavigation> {
         icon: Icons.restaurant_menu_outlined,
         activeIcon: Icons.restaurant_menu,
       ),
-      const _NavItemData(icon: Icons.person_outline, activeIcon: Icons.person),
+      const _NavItemData(
+        icon: Icons.person_outline,
+        activeIcon: Icons.person,
+      ),
     ];
 
     // =========================
@@ -74,7 +80,10 @@ class _MainNavigationState extends State<MainNavigation> {
         icon: Icons.receipt_long_outlined,
         activeIcon: Icons.receipt_long,
       ),
-      const _NavItemData(icon: Icons.person_outline, activeIcon: Icons.person),
+      const _NavItemData(
+        icon: Icons.person_outline,
+        activeIcon: Icons.person,
+      ),
     ];
 
     final pages = isAdmin ? adminPages : cashierPages;
@@ -82,19 +91,36 @@ class _MainNavigationState extends State<MainNavigation> {
 
     if (currentIndex >= pages.length) {
       currentIndex = 0;
+      _visited.add(0);
     }
 
     return Scaffold(
       extendBody: true,
 
-      // Supaya page tidak dibuat ulang setiap pindah menu
-      body: IndexedStack(index: currentIndex, children: pages),
+      // Halaman baru dibuat ketika pertama kali dikunjungi.
+      // Setelah dibuat, halaman tetap hidup dan state-nya dipertahankan.
+      body: IndexedStack(
+        index: currentIndex,
+        children: [
+          for (int i = 0; i < pages.length; i++)
+            _visited.contains(i)
+                ? pages[i]
+                : const SizedBox.shrink(),
+        ],
+      ),
 
       bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.only(left: 24, right: 24, bottom: 10),
+        minimum: const EdgeInsets.only(
+          left: 24,
+          right: 24,
+          bottom: 10,
+        ),
         child: Container(
           height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 6,
+            vertical: 5,
+          ),
           decoration: BoxDecoration(
             color: primaryOrange,
             borderRadius: BorderRadius.circular(28),
@@ -118,6 +144,7 @@ class _MainNavigationState extends State<MainNavigation> {
                   onTap: () {
                     setState(() {
                       currentIndex = index;
+                      _visited.add(index);
                     });
                   },
                 ),
@@ -138,7 +165,10 @@ class _NavItemData {
   final IconData icon;
   final IconData activeIcon;
 
-  const _NavItemData({required this.icon, required this.activeIcon});
+  const _NavItemData({
+    required this.icon,
+    required this.activeIcon,
+  });
 }
 
 // =======================================
@@ -163,63 +193,21 @@ class _AnimatedNavItem extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
-
-        splashColor: Colors.white.withOpacity(0.15),
-
+        splashFactory: NoSplash.splashFactory,
         highlightColor: Colors.transparent,
-
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 280),
-          curve: Curves.easeOutCubic,
-
+        child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 3),
-
           decoration: BoxDecoration(
-            color:
-                isSelected
-                    ? Colors.white.withOpacity(0.18)
-                    : Colors.transparent,
-
+            color: isSelected
+                ? Colors.white.withOpacity(0.18)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(22),
           ),
-
           child: Center(
-            child: AnimatedSlide(
-              duration: const Duration(milliseconds: 280),
-              curve: Curves.easeOutBack,
-
-              offset: isSelected ? const Offset(0, -0.10) : Offset.zero,
-
-              child: AnimatedScale(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutBack,
-
-                scale: isSelected ? 1.12 : 1.0,
-
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-
-                  transitionBuilder: (
-                    Widget child,
-                    Animation<double> animation,
-                  ) {
-                    return ScaleTransition(
-                      scale: animation,
-                      child: FadeTransition(opacity: animation, child: child),
-                    );
-                  },
-
-                  child: Icon(
-                    isSelected ? item.activeIcon : item.icon,
-
-                    key: ValueKey<bool>(isSelected),
-
-                    color: Colors.white,
-
-                    size: isSelected ? 25 : 22,
-                  ),
-                ),
-              ),
+            child: Icon(
+              isSelected ? item.activeIcon : item.icon,
+              color: Colors.white,
+              size: 24,
             ),
           ),
         ),

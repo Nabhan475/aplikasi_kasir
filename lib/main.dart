@@ -4,6 +4,19 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 
+class NoTransition extends PageTransitionsBuilder {
+  const NoTransition();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) => child;
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -24,6 +37,15 @@ class KasirBuburAyamApp extends StatelessWidget {
       title: 'Kasir Bubur Ayam 72',
       theme: ThemeData(
         useMaterial3: true,
+        pageTransitionsTheme: const PageTransitionsTheme(
+          builders: {
+            TargetPlatform.android: NoTransition(),
+            TargetPlatform.iOS: NoTransition(),
+            TargetPlatform.windows: NoTransition(),
+            TargetPlatform.macOS: NoTransition(),
+            TargetPlatform.linux: NoTransition(),
+          },
+        ),
       ),
       home: const LoginScreen(),
     );
