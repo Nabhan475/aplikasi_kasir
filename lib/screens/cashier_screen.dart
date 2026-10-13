@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'utils.dart';
 
-const Color primaryOrange = Color(0xFFFF5A1F);
-const Color softOrange = Color(0xFFFFEEE8);
+const Color primaryPurple = Color(0xFF6952AE);
+const Color lightPurple = Color(0xFFAC94F5);
 
 // =========================
 // MODEL KERANJANG
@@ -109,7 +109,7 @@ class _CashierScreenState extends State<CashierScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
-        backgroundColor: primaryOrange,
+        backgroundColor: primaryPurple,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -209,9 +209,9 @@ class _CashierScreenState extends State<CashierScreen> {
                 child: ElevatedButton.icon(
                   onPressed: cart.isEmpty ? null : openCart,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryOrange,
+                    backgroundColor: primaryPurple,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: const Color(0xFFFFC9B5),
+                    disabledBackgroundColor: lightPurple.withOpacity(0.4),
                     disabledForegroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -260,10 +260,10 @@ class MenuItemCard extends StatelessWidget {
   Widget _placeholder() {
     return Container(
       width: double.infinity,
-      color: softOrange,
+      color: lightPurple.withOpacity(0.25),
       child: const Icon(
         Icons.fastfood_outlined,
-        color: primaryOrange,
+        color: primaryPurple,
         size: 55,
       ),
     );
@@ -316,7 +316,7 @@ class MenuItemCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: primaryOrange,
+                        color: primaryPurple,
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -350,7 +350,7 @@ class MenuItemCard extends StatelessWidget {
                 Text(
                   formatRupiah(price),
                   style: const TextStyle(
-                    color: primaryOrange,
+                    color: primaryPurple,
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
@@ -362,7 +362,7 @@ class MenuItemCard extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: onAdd,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryOrange,
+                      backgroundColor: primaryPurple,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       shape: RoundedRectangleBorder(
@@ -472,7 +472,7 @@ class _CartScreenState extends State<CartScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
       appBar: AppBar(
-        backgroundColor: primaryOrange,
+        backgroundColor: primaryPurple,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -514,7 +514,7 @@ class _CartScreenState extends State<CartScreen> {
                               Text(
                                 formatRupiah(item.price),
                                 style: const TextStyle(
-                                  color: primaryOrange,
+                                  color: primaryPurple,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -524,7 +524,7 @@ class _CartScreenState extends State<CartScreen> {
                         IconButton(
                           onPressed: () => changeQty(item, -1),
                           icon: const Icon(Icons.remove_circle_outline),
-                          color: primaryOrange,
+                          color: primaryPurple,
                         ),
                         Text(
                           '${item.qty}',
@@ -536,7 +536,7 @@ class _CartScreenState extends State<CartScreen> {
                         IconButton(
                           onPressed: () => changeQty(item, 1),
                           icon: const Icon(Icons.add_circle_outline),
-                          color: primaryOrange,
+                          color: primaryPurple,
                         ),
                       ],
                     ),
@@ -564,7 +564,7 @@ class _CartScreenState extends State<CartScreen> {
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: primaryOrange,
+                          color: primaryPurple,
                         ),
                       ),
                     ],
@@ -576,7 +576,7 @@ class _CartScreenState extends State<CartScreen> {
                     child: ElevatedButton(
                       onPressed: isLoading ? null : checkout,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryOrange,
+                        backgroundColor: primaryPurple,
                         foregroundColor: Colors.white,
                         elevation: 0,
                         shape: RoundedRectangleBorder(

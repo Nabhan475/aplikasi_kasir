@@ -22,7 +22,7 @@ class _MainNavigationState extends State<MainNavigation> {
   // Halaman yang sudah pernah dikunjungi.
   final Set<int> _visited = {0};
 
-  static const Color primaryOrange = Color(0xFFFF5A1F);
+  static const Color primaryColor = Color(0xFF6952AE);
 
   @override
   Widget build(BuildContext context) {
@@ -122,7 +122,7 @@ class _MainNavigationState extends State<MainNavigation> {
             vertical: 5,
           ),
           decoration: BoxDecoration(
-            color: primaryOrange,
+            color: primaryColor,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(

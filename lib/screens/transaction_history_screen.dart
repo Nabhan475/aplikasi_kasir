@@ -13,7 +13,7 @@ class TransactionHistoryScreen extends StatefulWidget {
 }
 
 class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
-  static const Color primaryOrange = Color(0xFFFF5A1F);
+  static const Color primaryPurple = Color(0xFF6952AE);
 
   String? businessId;
 
@@ -129,7 +129,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
       backgroundColor: const Color(0xFFF7F7F7),
 
       appBar: AppBar(
-        backgroundColor: primaryOrange,
+        backgroundColor: primaryPurple,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -236,7 +236,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                       formatRupiah(total),
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
-                        color: primaryOrange,
+                        color: primaryPurple,
                         fontSize: 17,
                       ),
                     ),

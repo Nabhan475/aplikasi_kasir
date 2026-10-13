@@ -5,9 +5,9 @@ import 'login_screen.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  static const Color primaryOrange = Color(0xFFFF5A1F);
+  static const Color primaryPurple = Color(0xFF6952AE);
   static const Color backgroundColor = Color(0xFFF7F7F7);
-  static const Color softOrange = Color(0xFFFFEEE8);
+  static const Color lightPurple = Color(0xFFAC94F5);
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +15,7 @@ class ProfileScreen extends StatelessWidget {
       backgroundColor: backgroundColor,
 
       appBar: AppBar(
-        backgroundColor: primaryOrange,
+        backgroundColor: primaryPurple,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -50,14 +50,14 @@ class ProfileScreen extends StatelessWidget {
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: softOrange,
+                        color: lightPurple.withOpacity(0.25),
                         shape: BoxShape.circle,
-                        border: Border.all(color: primaryOrange, width: 3),
+                        border: Border.all(color: primaryPurple, width: 3),
                       ),
                       child: const Icon(
                         Icons.person,
                         size: 55,
-                        color: primaryOrange,
+                        color: primaryPurple,
                       ),
                     ),
 
@@ -90,13 +90,13 @@ class ProfileScreen extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: softOrange,
+                        color: lightPurple.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
                         'Admin',
                         style: TextStyle(
-                          color: primaryOrange,
+                          color: primaryPurple,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
@@ -196,7 +196,7 @@ class ProfileInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryOrange = Color(0xFFFF5A1F);
+    const Color primaryPurple = Color(0xFF6952AE);
 
     return Row(
       children: [
@@ -204,10 +204,10 @@ class ProfileInfoRow extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFEEE8),
+            color: const Color(0xFFAC94F5).withOpacity(0.25),
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.person_outline, color: primaryOrange),
+          child: const Icon(Icons.person_outline, color: primaryPurple),
         ),
 
         const SizedBox(width: 14),

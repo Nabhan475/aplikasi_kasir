@@ -37,6 +37,10 @@ class KasirBuburAyamApp extends StatelessWidget {
       title: 'Kasir Bubur Ayam 72',
       theme: ThemeData(
         useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF6952AE),
+          primary: const Color(0xFF6952AE),
+        ),
         pageTransitionsTheme: const PageTransitionsTheme(
           builders: {
             TargetPlatform.android: NoTransition(),

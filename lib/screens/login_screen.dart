@@ -19,7 +19,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool obscurePassword = true;
   bool isLoading = false;
 
-  static const Color primaryOrange = Color(0xFFFF5A1F);
+  static const Color primaryColor = Color(0xFF6952AE);
+  static const Color lightColor = Color(0xFFAC94F5);
   static const Color lightField = Color(0xFFF4F4F4);
 
   @override
@@ -131,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(24),
         borderSide: const BorderSide(
-          color: primaryOrange,
+          color: primaryColor,
           width: 1.3,
         ),
       ),
@@ -153,11 +154,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFFFF8A4C),
-                    Color(0xFFFF5A1F),
-                    Color(0xFFFF4D00),
+                    lightColor,
+                    primaryColor,
                   ],
-                  stops: [0.0, 0.5, 1.0],
                 ),
               ),
               child: const Center(
@@ -297,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             style:
                                 ElevatedButton.styleFrom(
                               backgroundColor:
-                                  primaryOrange,
+                                  primaryColor,
                               foregroundColor:
                                   Colors.white,
                               elevation: 0,
@@ -357,7 +356,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               child: const Text(
                                 'Register',
                                 style: TextStyle(
-                                  color: primaryOrange,
+                                  color: primaryColor,
                                   fontSize: 14,
                                   fontWeight:
                                       FontWeight.bold,

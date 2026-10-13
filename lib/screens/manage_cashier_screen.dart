@@ -11,8 +11,8 @@ class ManageCashierScreen extends StatefulWidget {
 }
 
 class _ManageCashierScreenState extends State<ManageCashierScreen> {
-  static const Color primaryOrange = Color(0xFFFF5A1F);
-  static const Color softOrange = Color(0xFFFFEEE8);
+  static const Color primaryColor = Color(0xFF6952AE);
+  static const Color lightColor = Color(0xFFAC94F5);
 
   String? businessId;
   bool loadingBusiness = true;
@@ -109,7 +109,7 @@ class _ManageCashierScreenState extends State<ManageCashierScreen> {
       backgroundColor: const Color(0xFFF7F7F7),
 
       appBar: AppBar(
-        backgroundColor: primaryOrange,
+        backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -119,7 +119,7 @@ class _ManageCashierScreenState extends State<ManageCashierScreen> {
       ),
 
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: primaryOrange,
+        backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         onPressed: () => _openForm(context),
         icon: const Icon(Icons.person_add_alt_1),
@@ -176,8 +176,8 @@ class _ManageCashierScreenState extends State<ManageCashierScreen> {
                 ),
                 child: ListTile(
                   leading: const CircleAvatar(
-                    backgroundColor: softOrange,
-                    child: Icon(Icons.person, color: primaryOrange),
+                    backgroundColor: lightColor,
+                    child: Icon(Icons.person, color: primaryColor),
                   ),
                   title: Text(
                     (data['username'] ?? '-').toString(),
@@ -401,7 +401,7 @@ class _CashierFormDialogState extends State<_CashierFormDialog> {
         ElevatedButton(
           onPressed: saving ? null : save,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF5A1F),
+            backgroundColor: const Color(0xFF6952AE),
             foregroundColor: Colors.white,
           ),
           child:

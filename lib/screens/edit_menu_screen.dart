@@ -12,14 +12,13 @@ class EditMenuScreen extends StatefulWidget {
 }
 
 class _EditMenuScreenState extends State<EditMenuScreen> {
-  static const Color primaryOrange = Color(0xFFFF5A1F);
-  static const Color softOrange = Color(0xFFFFEEE8);
+  static const Color primaryColor = Color(0xFF6952AE);
+  static const Color lightColor = Color(0xFFAC94F5);
 
   String? businessId;
   bool loadingBusiness = true;
 
-  CollectionReference<Map<String, dynamic>> get _menus =>
-      menusRef(businessId!);
+  CollectionReference<Map<String, dynamic>> get _menus => menusRef(businessId!);
 
   @override
   void initState() {
@@ -166,7 +165,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       backgroundColor: const Color(0xFFF7F7F7),
 
       appBar: AppBar(
-        backgroundColor: primaryOrange,
+        backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
@@ -176,9 +175,11 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
       ),
 
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 80), // tinggi navbar (56) + jarak bawah (10) + celah
+        padding: const EdgeInsets.only(
+          bottom: 80,
+        ), // tinggi navbar (56) + jarak bawah (10) + celah
         child: FloatingActionButton.extended(
-          backgroundColor: primaryOrange,
+          backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           onPressed: () => _openForm(context),
           icon: const Icon(Icons.add),
@@ -272,7 +273,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                     '${formatRupiah(price)}  •  '
                     '${available ? 'Tersedia' : 'Habis'}',
                     style: TextStyle(
-                      color: available ? primaryOrange : Colors.grey,
+                      color: available ? primaryColor : Colors.grey,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -282,7 +283,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                     children: [
                       Switch(
                         value: available,
-                        activeColor: primaryOrange,
+                        activeColor: primaryColor,
                         onChanged: (value) async {
                           await doc.reference.update({'isAvailable': value});
                         },
@@ -320,8 +321,8 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
 
   static Widget _placeholder() {
     return Container(
-      color: softOrange,
-      child: const Icon(Icons.fastfood_outlined, color: primaryOrange),
+      color: lightColor,
+      child: const Icon(Icons.fastfood_outlined, color: primaryColor),
     );
   }
 }
@@ -510,7 +511,7 @@ class _MenuFormDialogState extends State<_MenuFormDialog> {
         ElevatedButton(
           onPressed: saving ? null : save,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFFF5A1F),
+            backgroundColor: const Color(0xFF6952AE),
             foregroundColor: Colors.white,
           ),
           child:
