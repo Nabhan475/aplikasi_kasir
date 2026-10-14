@@ -12,7 +12,20 @@
           "package_name": "com.example.kasir_bubur_ayam_72"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "478231720986-f5vecav0ibcmdig40ctmie3va59h5vv1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.kasir_bubur_ayam_72",
+            "certificate_hash": "8130b112b9cb28ac3f6b5e6d05dd8f15c1b3d7bd"
+          }
+        },
+        {
+          "client_id": "478231720986-sq1r9ht5n9f3jqdkjnmemuqa909uo94d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBjLEAxrgeWXu5ECZhz2UPogT8kprwQ1tQ"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "478231720986-sq1r9ht5n9f3jqdkjnmemuqa909uo94d.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "478231720986-b8h79k1htue2gbc1i84ptsiiq6d78m24.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.teskoneksi"
+              }
+            }
+          ]
         }
       }
     },
@@ -31,7 +56,12 @@
           "package_name": "com.example.teskoneksi"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "478231720986-sq1r9ht5n9f3jqdkjnmemuqa909uo94d.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBjLEAxrgeWXu5ECZhz2UPogT8kprwQ1tQ"
@@ -39,7 +69,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "478231720986-sq1r9ht5n9f3jqdkjnmemuqa909uo94d.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "478231720986-b8h79k1htue2gbc1i84ptsiiq6d78m24.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.teskoneksi"
+              }
+            }
+          ]
         }
       }
     }

@@ -156,14 +156,14 @@ class ProfileScreen extends StatelessWidget {
                 height: 52,
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                  await FirebaseAuth.instance.signOut();
-                  if (!context.mounted) return;
-                  // Hapus semua halaman di stack supaya tombol back tidak bisa kembali ke halaman admin/kasir
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    (_) => false,
-                  );
-                },
+                    await FirebaseAuth.instance.signOut();
+                    if (!context.mounted) return;
+                    // Hapus semua halaman di stack supaya tombol back tidak bisa kembali ke halaman admin/kasir
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (_) => false,
+                    );
+                  },
                   icon: const Icon(Icons.logout, size: 20),
                   label: const Text(
                     'Logout',
