@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'utils.dart';
+
 class InventoriScreen extends StatefulWidget {
   const InventoriScreen({super.key});
 
@@ -15,8 +17,31 @@ class _InventoriScreenState extends State<InventoriScreen> {
   final db = FirebaseFirestore.instance;
   final searchC = TextEditingController();
 
+  String? businessId;
+  bool loadingBusiness = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBusiness();
+  }
+
+  Future<void> _loadBusiness() async {
+    try {
+      final id = await getBusinessId();
+      if (!mounted) return;
+      setState(() {
+        businessId = id;
+        loadingBusiness = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => loadingBusiness = false);
+    }
+  }
+
   CollectionReference<Map<String, dynamic>> get items =>
-      db.collection('inventory');
+      inventoryRef(businessId!);
 
   @override
   void dispose() {
@@ -283,7 +308,7 @@ class _InventoriScreenState extends State<InventoriScreen> {
           'updatedAt': FieldValue.serverTimestamp(),
         });
 
-        final usageRef = db.collection('inventory_usage').doc();
+        final usageRef = inventoryUsageRef(businessId!).doc();
         transaction.set(usageRef, {
           'inventoryId': id,
           'amount': amount,
@@ -565,6 +590,26 @@ class _InventoriScreenState extends State<InventoriScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (loadingBusiness) {
+      return const Scaffold(
+        backgroundColor: bg,
+        body: Center(child: CircularProgressIndicator(color: purple)),
+      );
+    }
+    if (businessId == null) {
+      return Scaffold(
+        backgroundColor: bg,
+        appBar: AppBar(
+          backgroundColor: purple,
+          foregroundColor: Colors.white,
+          title: const Text('Inventori', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        body: const Center(
+          child: Text('Data usaha tidak ditemukan. Silakan login ulang.'),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: bg,
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(

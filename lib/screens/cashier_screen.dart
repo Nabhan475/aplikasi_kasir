@@ -38,6 +38,7 @@ class _CashierScreenState extends State<CashierScreen> {
   final Map<String, CartItem> cart = {};
   String? businessId;
   bool loadingBusiness = true;
+  String? activeShift;
 
   int get totalItems => cart.values.fold(0, (s, i) => s + i.qty);
   int get totalPrice => cart.values.fold(0, (s, i) => s + i.qty * i.price);
@@ -56,6 +57,15 @@ class _CashierScreenState extends State<CashierScreen> {
         businessId = id;
         loadingBusiness = false;
       });
+
+      // Munculkan dialog pilihan shift pertama kali jika kasir belum memilih shift
+      if (activeShift == null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && activeShift == null) {
+            _pickShiftModal(context, mandatory: true);
+          }
+        });
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -65,6 +75,432 @@ class _CashierScreenState extends State<CashierScreen> {
         SnackBar(content: Text('Gagal mengambil data usaha: $e')),
       );
     }
+  }
+
+  void _pickShiftModal(BuildContext context, {bool mandatory = false}) {
+    showModalBottomSheet<void>(
+      context: context,
+      isDismissible: !mandatory,
+      enableDrag: !mandatory,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return PopScope(
+          canPop: !mandatory,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                const Row(
+                  children: [
+                    Icon(Icons.access_time_filled, color: primaryPurple, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      'Pilih Shift Kerja',
+                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Silakan tentukan shift kasir yang aktif saat ini.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+                const SizedBox(height: 16),
+                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: shiftsRef(businessId!).snapshots(),
+                  builder: (context, snapshot) {
+                    final docs = (snapshot.data?.docs ?? [])
+                        .where((d) => d.data()['active'] != false)
+                        .toList();
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (docs.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF7F6FA),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.info_outline, color: primaryPurple, size: 20),
+                                SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Belum ada data shift di sistem. Anda dapat memilih Shift Reguler di bawah.',
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ...docs.map((doc) {
+                          final data = doc.data();
+                          final name = data['name']?.toString() ?? 'Shift';
+                          final start = data['startTime']?.toString() ?? '00:00';
+                          final end = data['endTime']?.toString() ?? '00:00';
+                          final label = '$name ($start - $end)';
+                          final isSelected = activeShift == label;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: BoxDecoration(
+                              color: isSelected ? lightPurple.withValues(alpha: 0.15) : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? primaryPurple : Colors.grey.shade300,
+                                width: isSelected ? 1.5 : 1,
+                              ),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: isSelected ? primaryPurple : const Color(0xFFF0EDF9),
+                                foregroundColor: isSelected ? Colors.white : primaryPurple,
+                                child: const Icon(Icons.schedule, size: 20),
+                              ),
+                              title: Text(
+                                name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: isSelected ? primaryPurple : Colors.black87,
+                                ),
+                              ),
+                              subtitle: Text('$start - $end WIB'),
+                              trailing: isSelected
+                                  ? const Icon(Icons.check_circle, color: primaryPurple)
+                                  : null,
+                              onTap: () {
+                                setState(() => activeShift = label);
+                                Navigator.pop(sheetCtx);
+                              },
+                            ),
+                          );
+                        }),
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: activeShift == 'Shift Reguler (08:00 - 17:00)'
+                                ? lightPurple.withValues(alpha: 0.15)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: activeShift == 'Shift Reguler (08:00 - 17:00)'
+                                  ? primaryPurple
+                                  : Colors.grey.shade300,
+                              width: activeShift == 'Shift Reguler (08:00 - 17:00)' ? 1.5 : 1,
+                            ),
+                          ),
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: activeShift == 'Shift Reguler (08:00 - 17:00)'
+                                  ? primaryPurple
+                                  : const Color(0xFFF0EDF9),
+                              foregroundColor: activeShift == 'Shift Reguler (08:00 - 17:00)'
+                                  ? Colors.white
+                                  : primaryPurple,
+                              child: const Icon(Icons.work_outline, size: 20),
+                            ),
+                            title: const Text(
+                              'Shift Reguler',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: const Text('08:00 - 17:00 WIB (Default)'),
+                            trailing: activeShift == 'Shift Reguler (08:00 - 17:00)'
+                                ? const Icon(Icons.check_circle, color: primaryPurple)
+                                : null,
+                            onTap: () {
+                              setState(() => activeShift = 'Shift Reguler (08:00 - 17:00)');
+                              Navigator.pop(sheetCtx);
+                            },
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showOnlineOrdersSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetCtx) {
+        return Container(
+          height: MediaQuery.of(sheetCtx).size.height * 0.85,
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Icon(Icons.shopping_bag_outlined, color: primaryPurple, size: 24),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Pesanan Online Masuk',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(sheetCtx),
+                  ),
+                ],
+              ),
+              const Text(
+                'Kelola pesanan online / terjadwal dari pelanggan.',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                  stream: ordersRef(businessId!)
+                      .orderBy('scheduledAt', descending: false)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator(color: primaryPurple));
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Terjadi kesalahan: ${snapshot.error}'));
+                    }
+
+                    final docs = snapshot.data?.docs ?? [];
+                    if (docs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.inbox_outlined, size: 54, color: Colors.grey.shade400),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'Belum ada pesanan online',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Pesanan yang masuk akan muncul di sini',
+                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      itemCount: docs.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final doc = docs[index];
+                        final data = doc.data();
+                        final customer = data['customer']?.toString() ?? 'Pelanggan';
+                        final menu = data['menu']?.toString() ?? 'Menu';
+                        final qty = data['quantity'] ?? 1;
+                        final note = data['note']?.toString() ?? '';
+                        final status = data['status']?.toString() ?? 'Terjadwal';
+
+                        DateTime? scheduledDate;
+                        final scheduledRaw = data['scheduledAt'];
+                        if (scheduledRaw is Timestamp) {
+                          scheduledDate = scheduledRaw.toDate();
+                        } else if (scheduledRaw is String) {
+                          scheduledDate = DateTime.tryParse(scheduledRaw);
+                        }
+
+                        Color statusColor = Colors.blue;
+                        if (status.toLowerCase() == 'diproses') statusColor = Colors.orange;
+                        if (status.toLowerCase() == 'selesai') statusColor = Colors.green;
+                        if (status.toLowerCase() == 'batal' || status.toLowerCase() == 'dibatalkan') {
+                          statusColor = Colors.red;
+                        }
+
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFBFBFE),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFE9E7F2)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      customer,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      status,
+                                      style: TextStyle(
+                                        color: statusColor,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  const Icon(Icons.restaurant_outlined, size: 16, color: primaryPurple),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      '$menu x$qty porsi',
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (scheduledDate != null) ...[
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.schedule, size: 16, color: Colors.grey),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '${scheduledDate.day.toString().padLeft(2, '0')}/${scheduledDate.month.toString().padLeft(2, '0')}/${scheduledDate.year} â€¢ ${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')} WIB',
+                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              if (note.isNotEmpty) ...[
+                                const SizedBox(height: 6),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.amber.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.notes, size: 14, color: Colors.amber.shade800),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          note,
+                                          style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              const SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  if (status.toLowerCase() == 'terjadwal')
+                                    FilledButton.icon(
+                                      onPressed: () async {
+                                        await doc.reference.update({'status': 'Diproses'});
+                                      },
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: primaryPurple,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      icon: const Icon(Icons.soup_kitchen, size: 16),
+                                      label: const Text('Mulai Proses', style: TextStyle(fontSize: 12)),
+                                    ),
+                                  if (status.toLowerCase() == 'diproses')
+                                    FilledButton.icon(
+                                      onPressed: () async {
+                                        await doc.reference.update({'status': 'Selesai'});
+                                      },
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: Colors.green,
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      icon: const Icon(Icons.check, size: 16),
+                                      label: const Text('Selesaikan', style: TextStyle(fontSize: 12)),
+                                    ),
+                                  if (status.toLowerCase() != 'selesai' &&
+                                      status.toLowerCase() != 'batal' &&
+                                      status.toLowerCase() != 'dibatalkan') ...[
+                                    const SizedBox(width: 8),
+                                    OutlinedButton(
+                                      onPressed: () async {
+                                        await doc.reference.update({'status': 'Batal'});
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                        side: const BorderSide(color: Colors.red),
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                      child: const Text('Batal', style: TextStyle(fontSize: 12)),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void addToCart(String id, String name, int price) {
@@ -84,7 +520,11 @@ class _CashierScreenState extends State<CashierScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CartScreen(cart: cart, businessId: id),
+        builder: (_) => CartScreen(
+          cart: cart,
+          businessId: id,
+          activeShift: activeShift,
+        ),
       ),
     );
     if (mounted) setState(() {});
@@ -116,6 +556,59 @@ class _CashierScreenState extends State<CashierScreen> {
           'Kasir',
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: ordersRef(businessId!).snapshots(),
+            builder: (context, snapshot) {
+              final docs = snapshot.data?.docs ?? [];
+              final pending = docs.where((d) {
+                final s = (d.data()['status'] ?? '').toString().toLowerCase();
+                return s != 'selesai' && s != 'dibatalkan' && s != 'batal';
+              }).toList();
+              final count = pending.length;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    tooltip: 'Pesanan Online',
+                    onPressed: _showOnlineOrdersSheet,
+                  ),
+                  if (count > 0)
+                    Positioned(
+                      right: 6,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.redAccent,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 18,
+                          minHeight: 18,
+                        ),
+                        child: Text(
+                          count > 99 ? '99+' : '$count',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.access_time_rounded),
+            tooltip: 'Pilih Shift',
+            onPressed: () => _pickShiftModal(context, mandatory: false),
+          ),
+        ],
       ),
       body: SafeArea(
         child: Padding(
@@ -123,6 +616,88 @@ class _CashierScreenState extends State<CashierScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ============================
+              // BANNER SHIFT AKTIF
+              // ============================
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: activeShift != null
+                        ? lightPurple.withValues(alpha: 0.5)
+                        : Colors.orange.shade200,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (activeShift != null ? primaryPurple : Colors.orange)
+                            .withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        Icons.access_time_filled_rounded,
+                        color: activeShift != null ? primaryPurple : Colors.orange.shade800,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Shift Kerja Aktif',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            activeShift ?? 'Belum memilih shift (Ketuk tombol)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: activeShift != null
+                                  ? primaryPurple
+                                  : Colors.orange.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: () => _pickShiftModal(context, mandatory: false),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: primaryPurple,
+                        side: const BorderSide(color: primaryPurple),
+                        visualDensity: VisualDensity.compact,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        activeShift == null ? 'Pilih' : 'Ganti',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const Text(
                 'Daftar Menu',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -211,7 +786,7 @@ class _CashierScreenState extends State<CashierScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryPurple,
                     foregroundColor: Colors.white,
-                    disabledBackgroundColor: lightPurple.withOpacity(0.4),
+                    disabledBackgroundColor: lightPurple.withValues(alpha: 0.4),
                     disabledForegroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -260,7 +835,7 @@ class MenuItemCard extends StatelessWidget {
   Widget _placeholder() {
     return Container(
       width: double.infinity,
-      color: lightPurple.withOpacity(0.25),
+      color: lightPurple.withValues(alpha: 0.25),
       child: const Icon(
         Icons.fastfood_outlined,
         color: primaryPurple,
@@ -278,7 +853,7 @@ class MenuItemCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFFF0F0F0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -394,11 +969,13 @@ class MenuItemCard extends StatelessWidget {
 class CartScreen extends StatefulWidget {
   final Map<String, CartItem> cart;
   final String businessId;
+  final String? activeShift;
 
   const CartScreen({
     super.key,
     required this.cart,
     required this.businessId,
+    this.activeShift,
   });
 
   @override
@@ -447,6 +1024,7 @@ class _CartScreenState extends State<CartScreen> {
         'businessId': widget.businessId,
         'cashierId': user?.uid,
         'cashierEmail': user?.email,
+        'shift': widget.activeShift ?? 'Reguler',
         'createdAt': FieldValue.serverTimestamp(),
       });
 

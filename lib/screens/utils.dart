@@ -26,8 +26,10 @@ Future<String?> getBusinessId() async {
   if ((id == null || id.isEmpty) &&
       data?['role']?.toString().toLowerCase() == 'admin') {
     id = user.uid;
-    await ref.set({'businessId': id, 'ownerId': user.uid},
-        SetOptions(merge: true));
+    await ref.set({
+      'businessId': id,
+      'ownerId': user.uid,
+    }, SetOptions(merge: true));
   }
   return (id == null || id.isEmpty) ? null : id;
 }
@@ -45,3 +47,71 @@ CollectionReference<Map<String, dynamic>> transactionsRef(String businessId) =>
         .collection('users')
         .doc(businessId)
         .collection('transactions');
+
+/// users/{businessId}/inventory
+CollectionReference<Map<String, dynamic>> inventoryRef(String businessId) =>
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(businessId)
+        .collection('inventory');
+
+/// users/{businessId}/inventory_usage
+CollectionReference<Map<String, dynamic>> inventoryUsageRef(
+  String businessId,
+) => FirebaseFirestore.instance
+    .collection('users')
+    .doc(businessId)
+    .collection('inventory_usage');
+
+/// users/{businessId}/shifts
+CollectionReference<Map<String, dynamic>> shiftsRef(String businessId) =>
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(businessId)
+        .collection('shifts');
+
+/// users/{businessId}/scheduled_orders
+CollectionReference<Map<String, dynamic>> ordersRef(String businessId) =>
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(businessId)
+        .collection('scheduled_orders');
+
+/// users/{businessId}/discounts
+CollectionReference<Map<String, dynamic>> discountsRef(String businessId) =>
+    FirebaseFirestore.instance
+        .collection('users')
+        .doc(businessId)
+        .collection('discounts');
+
+const List<String> indonesianDays = [
+  'Senin',
+  'Selasa',
+  'Rabu',
+  'Kamis',
+  'Jumat',
+  'Sabtu',
+  'Minggu',
+];
+
+const List<String> indonesianMonths = [
+  'Januari',
+  'Februari',
+  'Maret',
+  'April',
+  'Mei',
+  'Juni',
+  'Juli',
+  'Agustus',
+  'September',
+  'Oktober',
+  'November',
+  'Desember',
+];
+
+/// Format tanggal lengkap: "Selasa, 20 Oktober 2026"
+String formatTanggalIndonesia(DateTime date) {
+  final dayName = indonesianDays[date.weekday - 1];
+  final monthName = indonesianMonths[date.month - 1];
+  return '$dayName, ${date.day} $monthName ${date.year}';
+}

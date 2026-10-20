@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'utils.dart';
 
 class ShiftScreen extends StatefulWidget {
   const ShiftScreen({super.key});
@@ -12,7 +13,34 @@ class _ShiftScreenState extends State<ShiftScreen> {
   static const purple = Color(0xFF6952AE);
   static const bg = Color(0xFFF7F6FA);
 
-  final shifts = FirebaseFirestore.instance.collection('shifts');
+  String? businessId;
+  bool loading = true;
+
+  CollectionReference<Map<String, dynamic>> get shifts => FirebaseFirestore
+      .instance
+      .collection('users')
+      .doc(businessId!)
+      .collection('shifts');
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBusiness();
+  }
+
+  Future<void> _loadBusiness() async {
+    try {
+      final id = await getBusinessId();
+      if (!mounted) return;
+      setState(() {
+        businessId = id;
+        loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => loading = false);
+    }
+  }
 
   TimeOfDay? _parseTime(dynamic value) {
     if (value is! String) return null;
@@ -20,9 +48,8 @@ class _ShiftScreenState extends State<ShiftScreen> {
     if (p.length != 2) return null;
     final h = int.tryParse(p[0]);
     final m = int.tryParse(p[1]);
-    if (h == null || m == null || h < 0 || h > 23 || m < 0 || m > 59) {
+    if (h == null || m == null || h > 23 || m > 59 || h < 0 || m < 0)
       return null;
-    }
     return TimeOfDay(hour: h, minute: m);
   }
 
@@ -34,7 +61,7 @@ class _ShiftScreenState extends State<ShiftScreen> {
     final name = TextEditingController(text: data?['name'] ?? '');
     TimeOfDay? start = _parseTime(data?['startTime']);
     TimeOfDay? end = _parseTime(data?['endTime']);
-    final formKey = GlobalKey<FormState>();
+    final key = GlobalKey<FormState>();
 
     await showModalBottomSheet<void>(
       context: context,
@@ -58,7 +85,7 @@ class _ShiftScreenState extends State<ShiftScreen> {
                   ),
                   child: SingleChildScrollView(
                     child: Form(
-                      key: formKey,
+                      key: key,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -187,7 +214,7 @@ class _ShiftScreenState extends State<ShiftScreen> {
                                 ),
                               ),
                               onPressed: () async {
-                                if (!formKey.currentState!.validate()) return;
+                                if (!key.currentState!.validate()) return;
                                 if (start == null || end == null) {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
@@ -551,7 +578,7 @@ class _ShiftScreenState extends State<ShiftScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      data['name'] ?? 'Shift',
+                      data['name']?.toString() ?? 'Shift',
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -673,7 +700,6 @@ class _ShiftScreenState extends State<ShiftScreen> {
 
   Widget _scheduleTime(String label, String time) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           label,
@@ -699,6 +725,27 @@ class _ShiftScreenState extends State<ShiftScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(
+        backgroundColor: bg,
+        body: Center(child: CircularProgressIndicator(color: purple)),
+      );
+    }
+
+    if (businessId == null || businessId!.isEmpty) {
+      return Scaffold(
+        backgroundColor: bg,
+        appBar: AppBar(
+          backgroundColor: purple,
+          foregroundColor: Colors.white,
+          title: const Text('Pengaturan Shift'),
+        ),
+        body: const Center(
+          child: Text('Data usaha tidak ditemukan. Silakan login ulang.'),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: bg,
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
@@ -749,7 +796,8 @@ class _ShiftScreenState extends State<ShiftScreen> {
                       const Padding(
                         padding: EdgeInsets.all(20),
                         child: Text(
-                          'Gagal memuat jadwal. Periksa koneksi dan izin Firestore.',
+                          'Gagal memuat jadwal. Periksa koneksi dan '
+                          'izin Firestore.',
                           textAlign: TextAlign.center,
                         ),
                       )

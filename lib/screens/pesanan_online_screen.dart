@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'utils.dart';
+
 class PesananOnlineScreen extends StatefulWidget {
   const PesananOnlineScreen({super.key});
 
@@ -12,7 +14,31 @@ class _PesananOnlineScreenState extends State<PesananOnlineScreen> {
   static const purple = Color(0xFF6952AE);
   static const bg = Color(0xFFF7F6FA);
 
-  final orders = FirebaseFirestore.instance.collection('scheduled_orders');
+  String? businessId;
+  bool loadingBusiness = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBusiness();
+  }
+
+  Future<void> _loadBusiness() async {
+    try {
+      final id = await getBusinessId();
+      if (!mounted) return;
+      setState(() {
+        businessId = id;
+        loadingBusiness = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => loadingBusiness = false);
+    }
+  }
+
+  CollectionReference<Map<String, dynamic>> get orders =>
+      ordersRef(businessId!);
 
   DateTime selected = DateTime.now();
   DateTime month = DateTime(DateTime.now().year, DateTime.now().month);
@@ -571,6 +597,26 @@ class _PesananOnlineScreenState extends State<PesananOnlineScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (loadingBusiness) {
+      return const Scaffold(
+        backgroundColor: bg,
+        body: Center(child: CircularProgressIndicator(color: purple)),
+      );
+    }
+    if (businessId == null) {
+      return Scaffold(
+        backgroundColor: bg,
+        appBar: AppBar(
+          backgroundColor: purple,
+          foregroundColor: Colors.white,
+          title: const Text('Pesanan Terjadwal', style: TextStyle(fontWeight: FontWeight.bold)),
+        ),
+        body: const Center(
+          child: Text('Data usaha tidak ditemukan. Silakan login ulang.'),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: bg,
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(

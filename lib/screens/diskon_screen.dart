@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'utils.dart';
+
 class DiskonScreen extends StatefulWidget {
   const DiskonScreen({super.key});
 
@@ -11,9 +13,34 @@ class DiskonScreen extends StatefulWidget {
 class _DiskonScreenState extends State<DiskonScreen> {
   static const purple = Color(0xFF6952AE);
   final db = FirebaseFirestore.instance;
+
+  String? businessId;
+  bool loadingBusiness = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBusiness();
+  }
+
+  Future<void> _loadBusiness() async {
+    try {
+      final id = await getBusinessId();
+      if (!mounted) return;
+      setState(() {
+        businessId = id;
+        loadingBusiness = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => loadingBusiness = false);
+    }
+  }
+
   CollectionReference<Map<String, dynamic>> get discounts =>
-      db.collection('discounts');
-  CollectionReference<Map<String, dynamic>> get menus => db.collection('menus');
+      discountsRef(businessId!);
+  CollectionReference<Map<String, dynamic>> get menus =>
+      menusRef(businessId!);
 
   Future<void> _form({String? id, Map<String, dynamic>? data}) async {
     final name = TextEditingController(text: data?['menuName'] ?? '');
@@ -255,6 +282,30 @@ class _DiskonScreenState extends State<DiskonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (loadingBusiness) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF7F6FA),
+        body: Center(child: CircularProgressIndicator(color: purple)),
+      );
+    }
+    if (businessId == null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F6FA),
+        appBar: AppBar(
+          title: const Text(
+            'Diskon & Promo',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: purple,
+          foregroundColor: Colors.white,
+          elevation: 0,
+        ),
+        body: const Center(
+          child: Text('Data usaha tidak ditemukan. Silakan login ulang.'),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFFF7F6FA),
       appBar: AppBar(
