@@ -250,11 +250,6 @@ class _CashierFormDialogState extends State<_CashierFormDialog> {
     FirebaseApp? secondaryApp;
 
     try {
-      // =================================================
-      // FIREBASE SECONDARY
-      // =================================================
-      // Digunakan supaya ketika admin membuat akun kasir,
-      // admin tidak ikut logout.
       secondaryApp = await Firebase.initializeApp(
         name: 'secondary_${DateTime.now().millisecondsSinceEpoch}',
         options: Firebase.app().options,
@@ -262,34 +257,38 @@ class _CashierFormDialogState extends State<_CashierFormDialog> {
 
       final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
 
-      // Buat akun Authentication untuk kasir
+      // 1. Buat akun Authentication kasir
       final cred = await secondaryAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
 
-      final adminUser = FirebaseAuth.instance.currentUser;
+      // 2. Simpan data kasir menggunakan Firestore utama
+      // sehingga permintaan menggunakan sesi admin yang sedang login.
+      try {
+        final adminUser = FirebaseAuth.instance.currentUser;
 
-      // =================================================
-      // SIMPAN DATA KASIR
-      // =================================================
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(cred.user!.uid)
-          .set({
-            'username': username,
-            'email': email,
-            'role': 'kasir',
+        if (adminUser == null) {
+          throw Exception('Sesi admin tidak ditemukan');
+        }
 
-            // PENTING:
-            // Kasir mendapatkan businessId milik admin.
-            'businessId': widget.businessId,
-
-            // UID admin yang membuat kasir
-            'createdBy': adminUser?.uid,
-
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(cred.user!.uid)
+            .set({
+              'username': username,
+              'email': email,
+              'role': 'kasir',
+              'businessId': widget.businessId,
+              'ownerId': widget.businessId,
+              'createdBy': adminUser.uid,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+      } catch (e) {
+        // Jangan biarkan akun Auth "yatim" tanpa dokumen Firestore
+        await cred.user?.delete();
+        rethrow;
+      }
 
       await secondaryAuth.signOut();
 

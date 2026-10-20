@@ -4,6 +4,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'manage_cashier_screen.dart';
 import 'transaction_history_screen.dart';
+import 'inventori_screen.dart';
+import 'shift_screen.dart';
+import 'pesanan_online_screen.dart';
+import 'diskon_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -293,7 +297,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       accentColor: const Color(0xFFE05F67),
                       softColor: const Color(0xFFFFEDEE),
                       onTap: () {
-                        comingSoon(context, 'Inventori');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const InventoriScreen(),
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -308,7 +317,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       accentColor: const Color(0xFF44A992),
                       softColor: const Color(0xFFE5F7F2),
                       onTap: () {
-                        comingSoon(context, 'Shift');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const ShiftScreen(),
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -330,7 +344,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       accentColor: const Color(0xFFC95BB7),
                       softColor: const Color(0xFFFCE9F9),
                       onTap: () {
-                        comingSoon(context, 'Pesanan Online');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PesananOnlineScreen(),
+                          ),
+                        );
                       },
                     ),
                   ),
@@ -345,7 +364,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       accentColor: const Color(0xFFE59A37),
                       softColor: const Color(0xFFFFF3DF),
                       onTap: () {
-                        comingSoon(context, 'Diskon');
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const DiskonScreen(),
+                          ),
+                        );
                       },
                     ),
                   ),

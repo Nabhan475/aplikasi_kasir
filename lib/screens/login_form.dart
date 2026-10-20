@@ -6,6 +6,8 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'auth_style.dart';
 import 'main_navigation.dart';
 
+import '../user_service.dart';
+
 /// Isi form login (tanpa header / panel putih).
 /// Header & panel dikelola oleh LoginScreen supaya bisa dianimasikan.
 class LoginForm extends StatefulWidget {
@@ -139,15 +141,8 @@ class _LoginFormState extends State<LoginForm> {
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithCredential(credential);
 
-      // Ambil role dari Firestore (users/{uid}/role)
-      final doc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userCredential.user!.uid)
-              .get();
-
-      final roleDb = (doc.data()?['role'] ?? 'user').toString().toLowerCase();
-      final appRole = roleDb == 'admin' ? 'Admin' : 'Kasir';
+      // Buat dokumen users bila belum ada (akun baru = admin), lalu ambil role
+      final appRole = await ensureGoogleUser(userCredential.user!);
 
       if (!mounted) return;
 

@@ -5,6 +5,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 import 'auth_style.dart';
 import 'main_navigation.dart';
+import '../user_service.dart';
 
 /// Isi form register (tanpa header / panel putih).
 /// Header & panel dikelola oleh LoginScreen supaya bisa dianimasikan.
@@ -192,37 +193,8 @@ class _RegisterFormState extends State<RegisterForm> {
       final UserCredential userCredential = await FirebaseAuth.instance
           .signInWithCredential(credential);
 
-      // Ambil atau buat dokumen pengguna di Firestore
-      final userDoc = FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid);
-
-      final doc = await userDoc.get();
-
-      // Jika pengguna belum ada di Firestore (pendaftaran baru), buat dengan role admin
-      if (!doc.exists) {
-        // Untuk registrasi baru, setel data pengguna dengan role admin
-        // Sama seperti pendaftaran email/password
-        await userDoc.set({
-          'username': googleUser.displayName ?? googleUser.email.split('@')[0],
-          'email': googleUser.email,
-          'role': 'admin',
-
-          // ID bisnis milik admin
-          'businessId': userCredential.user!.uid,
-
-          // Pemilik bisnis
-          'ownerId': userCredential.user!.uid,
-
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-
-      // Ambil role dari Firestore (users/{uid}/role)
-      final updatedDoc = await userDoc.get();
-      final roleDb =
-          (updatedDoc.data()?['role'] ?? 'user').toString().toLowerCase();
-      final appRole = roleDb == 'admin' ? 'Admin' : 'Kasir';
+      // Buat dokumen users bila belum ada (akun baru = admin), lalu ambil role
+      final appRole = await ensureGoogleUser(userCredential.user!);
 
       if (!mounted) return;
 
