@@ -1,31 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
+import 'cart_screen.dart';
 import 'menu_image.dart';
 import 'utils.dart';
 
-const Color primaryPurple = Color(0xFF6952AE);
-const Color lightPurple = Color(0xFFAC94F5);
-
-// =========================
-// MODEL KERANJANG
-// =========================
-class CartItem {
-  final String id;
-  final String name;
-  final int price;
-  int qty;
-  int maxQty;
-
-  CartItem({
-    required this.id,
-    required this.name,
-    required this.price,
-    this.qty = 1,
-    this.maxQty = 999999,
-  });
-}
+const String _defaultShift = 'Shift Reguler (08:00 - 17:00)';
 
 // =========================
 // HALAMAN KASIR
@@ -39,6 +19,8 @@ class CashierScreen extends StatefulWidget {
 
 class _CashierScreenState extends State<CashierScreen> {
   final Map<String, CartItem> cart = {};
+  final _searchC = TextEditingController();
+
   String? businessId;
   bool loadingBusiness = true;
   String? activeShift;
@@ -52,6 +34,12 @@ class _CashierScreenState extends State<CashierScreen> {
     _loadBusiness();
   }
 
+  @override
+  void dispose() {
+    _searchC.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadBusiness() async {
     try {
       final id = await getBusinessId();
@@ -61,31 +49,128 @@ class _CashierScreenState extends State<CashierScreen> {
         loadingBusiness = false;
       });
 
-      // Munculkan dialog pilihan shift pertama kali jika kasir belum memilih shift
-      if (activeShift == null) {
+      // Wajib pilih shift saat pertama kali masuk
+      if (id != null && activeShift == null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && activeShift == null) {
-            _pickShiftModal(context, mandatory: true);
+            _pickShiftModal(mandatory: true);
           }
         });
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() {
-        loadingBusiness = false;
-      });
+      setState(() => loadingBusiness = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Gagal mengambil data usaha: $e')));
     }
   }
 
-  void _pickShiftModal(BuildContext context, {bool mandatory = false}) {
+  // ------------------------------------------------
+  // KERANJANG
+  // ------------------------------------------------
+  void addToCart(String id, String name, int price, int stock) {
+    final current = cart[id]?.qty ?? 0;
+    if (current >= stock) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Stok $name tinggal $stock')));
+      return;
+    }
+
+    setState(() {
+      if (cart.containsKey(id)) {
+        cart[id]!.qty++;
+        cart[id]!.maxQty = stock;
+      } else {
+        cart[id] = CartItem(id: id, name: name, price: price, maxQty: stock);
+      }
+    });
+  }
+
+  void removeFromCart(String id) {
+    final item = cart[id];
+    if (item == null) return;
+    setState(() {
+      item.qty--;
+      if (item.qty <= 0) cart.remove(id);
+    });
+  }
+
+  Future<void> openCart() async {
+    final id = businessId;
+    if (id == null) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder:
+            (_) => CartScreen(
+              cart: cart,
+              businessId: id,
+              activeShift: activeShift,
+            ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  // ------------------------------------------------
+  // PILIH SHIFT
+  // ------------------------------------------------
+  Widget _shiftTile({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required String label,
+    required BuildContext sheetCtx,
+  }) {
+    final selected = activeShift == label;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: selected ? lightPurple.withValues(alpha: 0.15) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: selected ? primaryPurple : Colors.grey.shade300,
+          width: selected ? 1.5 : 1,
+        ),
+      ),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        leading: CircleAvatar(
+          backgroundColor: selected ? primaryPurple : const Color(0xFFF0EDF9),
+          foregroundColor: selected ? Colors.white : primaryPurple,
+          child: Icon(icon, size: 20),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: selected ? primaryPurple : Colors.black87,
+          ),
+        ),
+        subtitle: Text(subtitle),
+        trailing:
+            selected
+                ? const Icon(Icons.check_circle, color: primaryPurple)
+                : null,
+        onTap: () {
+          setState(() => activeShift = label);
+          Navigator.pop(sheetCtx);
+        },
+      ),
+    );
+  }
+
+  void _pickShiftModal({bool mandatory = false}) {
+    if (businessId == null) return;
     showModalBottomSheet<void>(
       context: context,
       isDismissible: !mandatory,
       enableDrag: !mandatory,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) {
         return PopScope(
@@ -93,11 +178,12 @@ class _CashierScreenState extends State<CashierScreen> {
           child: Container(
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(sheetCtx).size.height * 0.85,
+              maxWidth: 560,
             ),
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
             decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -105,7 +191,7 @@ class _CashierScreenState extends State<CashierScreen> {
               children: [
                 Center(
                   child: Container(
-                    width: 40,
+                    width: 42,
                     height: 4,
                     decoration: BoxDecoration(
                       color: Colors.grey.shade300,
@@ -133,7 +219,7 @@ class _CashierScreenState extends State<CashierScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Silakan tentukan shift kasir yang aktif saat ini.',
+                  'Tentukan shift kasir yang aktif saat ini.',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
@@ -155,7 +241,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                 padding: const EdgeInsets.all(12),
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF7F6FA),
+                                  color: cashierBg,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Row(
@@ -168,7 +254,7 @@ class _CashierScreenState extends State<CashierScreen> {
                                     SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Belum ada data shift di sistem. Anda dapat memilih Shift Reguler di bawah.',
+                                        'Belum ada data shift. Anda dapat memilih Shift Reguler di bawah.',
                                         style: TextStyle(fontSize: 12),
                                       ),
                                     ),
@@ -182,125 +268,20 @@ class _CashierScreenState extends State<CashierScreen> {
                                   data['startTime']?.toString() ?? '00:00';
                               final end =
                                   data['endTime']?.toString() ?? '00:00';
-                              final label = '$name ($start - $end)';
-                              final isSelected = activeShift == label;
-
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 8),
-                                decoration: BoxDecoration(
-                                  color:
-                                      isSelected
-                                          ? lightPurple.withValues(alpha: 0.15)
-                                          : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color:
-                                        isSelected
-                                            ? primaryPurple
-                                            : Colors.grey.shade300,
-                                    width: isSelected ? 1.5 : 1,
-                                  ),
-                                ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor:
-                                        isSelected
-                                            ? primaryPurple
-                                            : const Color(0xFFF0EDF9),
-                                    foregroundColor:
-                                        isSelected
-                                            ? Colors.white
-                                            : primaryPurple,
-                                    child: const Icon(Icons.schedule, size: 20),
-                                  ),
-                                  title: Text(
-                                    name,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color:
-                                          isSelected
-                                              ? primaryPurple
-                                              : Colors.black87,
-                                    ),
-                                  ),
-                                  subtitle: Text('$start - $end WIB'),
-                                  trailing:
-                                      isSelected
-                                          ? const Icon(
-                                            Icons.check_circle,
-                                            color: primaryPurple,
-                                          )
-                                          : null,
-                                  onTap: () {
-                                    setState(() => activeShift = label);
-                                    Navigator.pop(sheetCtx);
-                                  },
-                                ),
+                              return _shiftTile(
+                                title: name,
+                                subtitle: '$start - $end WIB',
+                                icon: Icons.schedule,
+                                label: '$name ($start - $end)',
+                                sheetCtx: sheetCtx,
                               );
                             }),
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                color:
-                                    activeShift ==
-                                            'Shift Reguler (08:00 - 17:00)'
-                                        ? lightPurple.withValues(alpha: 0.15)
-                                        : Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color:
-                                      activeShift ==
-                                              'Shift Reguler (08:00 - 17:00)'
-                                          ? primaryPurple
-                                          : Colors.grey.shade300,
-                                  width:
-                                      activeShift ==
-                                              'Shift Reguler (08:00 - 17:00)'
-                                          ? 1.5
-                                          : 1,
-                                ),
-                              ),
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor:
-                                      activeShift ==
-                                              'Shift Reguler (08:00 - 17:00)'
-                                          ? primaryPurple
-                                          : const Color(0xFFF0EDF9),
-                                  foregroundColor:
-                                      activeShift ==
-                                              'Shift Reguler (08:00 - 17:00)'
-                                          ? Colors.white
-                                          : primaryPurple,
-                                  child: const Icon(
-                                    Icons.work_outline,
-                                    size: 20,
-                                  ),
-                                ),
-                                title: const Text(
-                                  'Shift Reguler',
-                                  style: TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                                subtitle: const Text(
-                                  '08:00 - 17:00 WIB (Default)',
-                                ),
-                                trailing:
-                                    activeShift ==
-                                            'Shift Reguler (08:00 - 17:00)'
-                                        ? const Icon(
-                                          Icons.check_circle,
-                                          color: primaryPurple,
-                                        )
-                                        : null,
-                                onTap: () {
-                                  setState(
-                                    () =>
-                                        activeShift =
-                                            'Shift Reguler (08:00 - 17:00)',
-                                  );
-                                  Navigator.pop(sheetCtx);
-                                },
-                              ),
+                            _shiftTile(
+                              title: 'Shift Reguler',
+                              subtitle: '08:00 - 17:00 WIB (Default)',
+                              icon: Icons.work_outline,
+                              label: _defaultShift,
+                              sheetCtx: sheetCtx,
                             ),
                           ],
                         );
@@ -316,25 +297,215 @@ class _CashierScreenState extends State<CashierScreen> {
     );
   }
 
+  // ------------------------------------------------
+  // PESANAN ONLINE
+  // ------------------------------------------------
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'diproses':
+        return Colors.orange;
+      case 'selesai':
+        return Colors.green;
+      case 'batal':
+      case 'dibatalkan':
+        return Colors.red;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  Widget _orderCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data();
+    final customer = data['customer']?.toString() ?? 'Pelanggan';
+    final menu = data['menu']?.toString() ?? 'Menu';
+    final qty = data['quantity'] ?? 1;
+    final note = data['note']?.toString() ?? '';
+    final status = data['status']?.toString() ?? 'Terjadwal';
+    final s = status.toLowerCase();
+
+    DateTime? date;
+    final raw = data['scheduledAt'];
+    if (raw is Timestamp) {
+      date = raw.toDate();
+    } else if (raw is String) {
+      date = DateTime.tryParse(raw);
+    }
+
+    final color = _statusColor(status);
+    final finished = s == 'selesai' || s == 'batal' || s == 'dibatalkan';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFBFBFE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cashierBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  customer,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  status,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              const Icon(
+                Icons.restaurant_outlined,
+                size: 16,
+                color: primaryPurple,
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '$menu x$qty porsi',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (date != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.schedule, size: 16, color: Colors.grey),
+                const SizedBox(width: 6),
+                Text(
+                  '${date.day.toString().padLeft(2, '0')}/'
+                  '${date.month.toString().padLeft(2, '0')}/${date.year}'
+                  ' • ${date.hour.toString().padLeft(2, '0')}:'
+                  '${date.minute.toString().padLeft(2, '0')} WIB',
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                ),
+              ],
+            ),
+          ],
+          if (note.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.notes, size: 14, color: Colors.amber.shade800),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      note,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (s == 'terjadwal')
+                FilledButton.icon(
+                  onPressed: () => doc.reference.update({'status': 'Diproses'}),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryPurple,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.soup_kitchen, size: 16),
+                  label: const Text(
+                    'Mulai Proses',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              if (s == 'diproses')
+                FilledButton.icon(
+                  onPressed: () => doc.reference.update({'status': 'Selesai'}),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.check, size: 16),
+                  label: const Text(
+                    'Selesaikan',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ),
+              if (!finished) ...[
+                const SizedBox(width: 8),
+                OutlinedButton(
+                  onPressed: () => doc.reference.update({'status': 'Batal'}),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: const Text('Batal', style: TextStyle(fontSize: 12)),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showOnlineOrdersSheet() {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetCtx) {
         return Container(
           height: MediaQuery.of(sheetCtx).size.height * 0.85,
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          constraints: const BoxConstraints(maxWidth: 640),
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Center(
                 child: Container(
-                  width: 40,
+                  width: 42,
                   height: 4,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
@@ -342,7 +513,7 @@ class _CashierScreenState extends State<CashierScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Row(
                 children: [
                   const Icon(
@@ -420,219 +591,7 @@ class _CashierScreenState extends State<CashierScreen> {
                     return ListView.separated(
                       itemCount: docs.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final doc = docs[index];
-                        final data = doc.data();
-                        final customer =
-                            data['customer']?.toString() ?? 'Pelanggan';
-                        final menu = data['menu']?.toString() ?? 'Menu';
-                        final qty = data['quantity'] ?? 1;
-                        final note = data['note']?.toString() ?? '';
-                        final status =
-                            data['status']?.toString() ?? 'Terjadwal';
-
-                        DateTime? scheduledDate;
-                        final scheduledRaw = data['scheduledAt'];
-                        if (scheduledRaw is Timestamp) {
-                          scheduledDate = scheduledRaw.toDate();
-                        } else if (scheduledRaw is String) {
-                          scheduledDate = DateTime.tryParse(scheduledRaw);
-                        }
-
-                        Color statusColor = Colors.blue;
-                        if (status.toLowerCase() == 'diproses') {
-                          statusColor = Colors.orange;
-                        }
-                        if (status.toLowerCase() == 'selesai') {
-                          statusColor = Colors.green;
-                        }
-                        if (status.toLowerCase() == 'batal' ||
-                            status.toLowerCase() == 'dibatalkan') {
-                          statusColor = Colors.red;
-                        }
-
-                        return Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFBFBFE),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFFE9E7F2)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      customer,
-                                      style: const TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: statusColor.withValues(
-                                        alpha: 0.12,
-                                      ),
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                    child: Text(
-                                      status,
-                                      style: TextStyle(
-                                        color: statusColor,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 6),
-                              Row(
-                                children: [
-                                  const Icon(
-                                    Icons.restaurant_outlined,
-                                    size: 16,
-                                    color: primaryPurple,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      '$menu x$qty porsi',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (scheduledDate != null) ...[
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.schedule,
-                                      size: 16,
-                                      color: Colors.grey,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      '${scheduledDate.day.toString().padLeft(2, '0')}/${scheduledDate.month.toString().padLeft(2, '0')}/${scheduledDate.year} â€¢ ${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')} WIB',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                              if (note.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.amber.shade50,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.notes,
-                                        size: 14,
-                                        color: Colors.amber.shade800,
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          note,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.amber.shade900,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 10),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  if (status.toLowerCase() == 'terjadwal')
-                                    FilledButton.icon(
-                                      onPressed: () async {
-                                        await doc.reference.update({
-                                          'status': 'Diproses',
-                                        });
-                                      },
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: primaryPurple,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      icon: const Icon(
-                                        Icons.soup_kitchen,
-                                        size: 16,
-                                      ),
-                                      label: const Text(
-                                        'Mulai Proses',
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  if (status.toLowerCase() == 'diproses')
-                                    FilledButton.icon(
-                                      onPressed: () async {
-                                        await doc.reference.update({
-                                          'status': 'Selesai',
-                                        });
-                                      },
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: Colors.green,
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      icon: const Icon(Icons.check, size: 16),
-                                      label: const Text(
-                                        'Selesaikan',
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  if (status.toLowerCase() != 'selesai' &&
-                                      status.toLowerCase() != 'batal' &&
-                                      status.toLowerCase() != 'dibatalkan') ...[
-                                    const SizedBox(width: 8),
-                                    OutlinedButton(
-                                      onPressed: () async {
-                                        await doc.reference.update({
-                                          'status': 'Batal',
-                                        });
-                                      },
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: Colors.red,
-                                        side: const BorderSide(
-                                          color: Colors.red,
-                                        ),
-                                        visualDensity: VisualDensity.compact,
-                                      ),
-                                      child: const Text(
-                                        'Batal',
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      itemBuilder: (_, i) => _orderCard(docs[i]),
                     );
                   },
                 ),
@@ -644,50 +603,538 @@ class _CashierScreenState extends State<CashierScreen> {
     );
   }
 
-  void addToCart(String id, String name, int price, int stock) {
-    final current = cart[id]?.qty ?? 0;
-    if (current >= stock) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Stok $name tinggal $stock')));
-      return;
-    }
-
-    setState(() {
-      if (cart.containsKey(id)) {
-        cart[id]!.qty++;
-        cart[id]!.maxQty = stock;
-      } else {
-        cart[id] = CartItem(id: id, name: name, price: price, maxQty: stock);
-      }
-    });
+  // ------------------------------------------------
+  // HEADER
+  // ------------------------------------------------
+  Widget _headerIconButton({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    int badge = 0,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: Colors.white.withValues(alpha: 0.18),
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(14),
+            child: Tooltip(
+              message: tooltip,
+              child: SizedBox(
+                width: 42,
+                height: 42,
+                child: Icon(icon, color: Colors.white, size: 22),
+              ),
+            ),
+          ),
+        ),
+        if (badge > 0)
+          Positioned(
+            right: -3,
+            top: -3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              constraints: const BoxConstraints(minWidth: 18),
+              decoration: BoxDecoration(
+                color: Colors.redAccent,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: primaryPurple, width: 1.5),
+              ),
+              child: Text(
+                badge > 99 ? '99+' : '$badge',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
-  Future<void> openCart() async {
-    final id = businessId;
-    if (id == null) return;
-
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder:
-            (_) => CartScreen(
-              cart: cart,
-              businessId: id,
-              activeShift: activeShift,
+  Widget _shiftChip() {
+    final has = activeShift != null;
+    return InkWell(
+      onTap: () => _pickShiftModal(),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: has ? 0.16 : 0.26),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              has ? Icons.access_time_filled_rounded : Icons.warning_amber,
+              color: has ? Colors.white : const Color(0xFFFFE08A),
+              size: 18,
             ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                activeShift ?? 'Belum memilih shift',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              has ? 'Ganti' : 'Pilih',
+              style: const TextStyle(
+                color: Color(0xFFE9E1FF),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Color(0xFFE9E1FF),
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
-    if (mounted) setState(() {});
   }
 
+  Widget _header(bool landscape) {
+    final top = MediaQuery.paddingOf(context).top;
+
+    final titleBlock = Row(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.18),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: const Icon(
+            Icons.point_of_sale_rounded,
+            color: Colors.white,
+            size: 25,
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Kasir',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'Pilih menu & proses pesanan',
+              style: TextStyle(color: Color(0xFFE9E1FF), fontSize: 11.5),
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final actions = StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: ordersRef(businessId!).snapshots(),
+      builder: (context, snapshot) {
+        final docs = snapshot.data?.docs ?? [];
+        final count =
+            docs.where((d) {
+              final s = (d.data()['status'] ?? '').toString().toLowerCase();
+              return s != 'selesai' && s != 'dibatalkan' && s != 'batal';
+            }).length;
+        return _headerIconButton(
+          icon: Icons.notifications_none_rounded,
+          tooltip: 'Pesanan Online',
+          onTap: _showOnlineOrdersSheet,
+          badge: count,
+        );
+      },
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.fromLTRB(
+        18,
+        top + (landscape ? 10 : 14),
+        18,
+        landscape ? 14 : 18,
+      ),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF8068CB), primaryPurple],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
+      child:
+          landscape
+              ? Row(
+                children: [
+                  titleBlock,
+                  const SizedBox(width: 20),
+                  Expanded(child: _shiftChip()),
+                  const SizedBox(width: 12),
+                  actions,
+                ],
+              )
+              : Column(
+                children: [
+                  Row(children: [Expanded(child: titleBlock), actions]),
+                  const SizedBox(height: 14),
+                  _shiftChip(),
+                ],
+              ),
+    );
+  }
+
+  // ------------------------------------------------
+  // AREA MENU
+  // ------------------------------------------------
+  Widget _searchBar() {
+    return TextField(
+      controller: _searchC,
+      onChanged: (_) => setState(() {}),
+      decoration: InputDecoration(
+        hintText: 'Cari menu...',
+        prefixIcon: const Icon(Icons.search_rounded, color: primaryPurple),
+        suffixIcon:
+            _searchC.text.isEmpty
+                ? null
+                : IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  onPressed: () => setState(_searchC.clear),
+                ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: cashierBorder),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: cashierBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: primaryPurple, width: 1.3),
+        ),
+      ),
+    );
+  }
+
+  Widget _menuArea({required double bottomPad}) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _searchBar(),
+          const SizedBox(height: 16),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+              stream:
+                  menusRef(
+                    businessId!,
+                  ).where('isAvailable', isEqualTo: true).snapshots(),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text('Terjadi kesalahan: ${snapshot.error}'),
+                  );
+                }
+                if (!snapshot.hasData) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: primaryPurple),
+                  );
+                }
+
+                final q = _searchC.text.trim().toLowerCase();
+                final docs =
+                    snapshot.data!.docs.where((doc) {
+                        final d = doc.data();
+                        final stock = (d['stock'] as num?)?.toInt() ?? 0;
+                        if (stock <= 0) return false;
+                        if (q.isEmpty) return true;
+                        return (d['name'] ?? '')
+                            .toString()
+                            .toLowerCase()
+                            .contains(q);
+                      }).toList()
+                      ..sort(
+                        (a, b) => (a.data()['name'] ?? '')
+                            .toString()
+                            .toLowerCase()
+                            .compareTo(
+                              (b.data()['name'] ?? '').toString().toLowerCase(),
+                            ),
+                      );
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'Daftar Menu',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.bold,
+                              color: cashierInk,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFEDE7FF),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '${docs.length} menu',
+                            style: const TextStyle(
+                              color: primaryPurple,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Ketuk menu untuk menambahkan ke keranjang',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Expanded(
+                      child:
+                          docs.isEmpty
+                              ? _emptyMenu(q.isNotEmpty)
+                              : GridView.builder(
+                                padding: EdgeInsets.only(bottom: bottomPad),
+                                gridDelegate:
+                                    const SliverGridDelegateWithMaxCrossAxisExtent(
+                                      maxCrossAxisExtent: 200,
+                                      mainAxisExtent: 262,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                    ),
+                                itemCount: docs.length,
+                                itemBuilder: (context, index) {
+                                  final doc = docs[index];
+                                  final data = doc.data();
+                                  final name = (data['name'] ?? '').toString();
+                                  final price =
+                                      (data['price'] as num?)?.toInt() ?? 0;
+                                  final stock =
+                                      (data['stock'] as num?)?.toInt() ?? 0;
+
+                                  return MenuItemCard(
+                                    name: name,
+                                    price: price,
+                                    imageUrl:
+                                        (data['imageUrl'] ?? '').toString(),
+                                    imageBase64:
+                                        (data['imageBase64'] ?? '').toString(),
+                                    stock: stock,
+                                    qtyInCart: cart[doc.id]?.qty ?? 0,
+                                    onAdd:
+                                        () => addToCart(
+                                          doc.id,
+                                          name,
+                                          price,
+                                          stock,
+                                        ),
+                                    onRemove: () => removeFromCart(doc.id),
+                                  );
+                                },
+                              ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyMenu(bool searching) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                color: Color(0xFFF0EBFF),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                searching ? Icons.search_off_rounded : Icons.restaurant_menu,
+                color: primaryPurple,
+                size: 34,
+              ),
+            ),
+            const SizedBox(height: 14),
+            Text(
+              searching ? 'Menu tidak ditemukan' : 'Belum ada menu tersedia',
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              searching
+                  ? 'Coba kata kunci lain.'
+                  : 'Minta admin untuk menambahkan menu.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------
+  // TOMBOL KERANJANG (portrait)
+  // ------------------------------------------------
+  Widget _cartButton() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: openCart,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          height: 60,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF8068CB), primaryPurple],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: primaryPurple.withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    const Icon(
+                      Icons.shopping_cart_outlined,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        constraints: const BoxConstraints(minWidth: 17),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Text(
+                          '$totalItems',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: primaryPurple,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Lihat Keranjang',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                formatRupiah(totalPrice),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ------------------------------------------------
+  // BUILD
+  // ------------------------------------------------
   @override
   Widget build(BuildContext context) {
     if (loadingBusiness) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(
+        backgroundColor: cashierBg,
+        body: Center(child: CircularProgressIndicator(color: primaryPurple)),
+      );
     }
     if (businessId == null) {
       return const Scaffold(
+        backgroundColor: cashierBg,
         body: Center(
           child: Text(
             'Data usaha tidak ditemukan.\nSilakan login ulang.',
@@ -697,305 +1144,75 @@ class _CashierScreenState extends State<CashierScreen> {
       );
     }
 
+    final size = MediaQuery.sizeOf(context);
+    final landscape = size.width > size.height;
+    final cartWidth = (size.width * 0.36).clamp(300.0, 400.0).toDouble();
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      appBar: AppBar(
-        backgroundColor: primaryPurple,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Kasir',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-            stream: ordersRef(businessId!).snapshots(),
-            builder: (context, snapshot) {
-              final docs = snapshot.data?.docs ?? [];
-              final pending =
-                  docs.where((d) {
-                    final s =
-                        (d.data()['status'] ?? '').toString().toLowerCase();
-                    return s != 'selesai' && s != 'dibatalkan' && s != 'batal';
-                  }).toList();
-              final count = pending.length;
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.notifications_outlined),
-                    tooltip: 'Pesanan Online',
-                    onPressed: _showOnlineOrdersSheet,
-                  ),
-                  if (count > 0)
-                    Positioned(
-                      right: 6,
-                      top: 8,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.redAccent,
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 18,
-                          minHeight: 18,
-                        ),
-                        child: Text(
-                          count > 99 ? '99+' : '$count',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                ],
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.access_time_rounded),
-            tooltip: 'Pilih Shift',
-            onPressed: () => _pickShiftModal(context, mandatory: false),
-          ),
-        ],
-      ),
+      backgroundColor: cashierBg,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ============================
-              // BANNER SHIFT AKTIF
-              // ============================
-              Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color:
-                        activeShift != null
-                            ? lightPurple.withValues(alpha: 0.5)
-                            : Colors.orange.shade200,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Row(
+        top: false,
+        child:
+            landscape
+                // ===== LANDSCAPE: menu kiri, keranjang kanan =====
+                ? Column(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: (activeShift != null
-                                ? primaryPurple
-                                : Colors.orange)
-                            .withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.access_time_filled_rounded,
-                        color:
-                            activeShift != null
-                                ? primaryPurple
-                                : Colors.orange.shade800,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
+                    _header(true),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Text(
-                            'Shift Kerja Aktif',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            activeShift ?? 'Belum memilih shift (Ketuk tombol)',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                              color:
-                                  activeShift != null
-                                      ? primaryPurple
-                                      : Colors.orange.shade800,
+                          Expanded(child: _menuArea(bottomPad: 16)),
+                          SizedBox(
+                            width: cartWidth,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(0, 14, 14, 14),
+                              child: CartPanel(
+                                cart: cart,
+                                businessId: businessId!,
+                                activeShift: activeShift,
+                                onChanged: () => setState(() {}),
+                                onCheckedOut: () => setState(() {}),
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    OutlinedButton(
-                      onPressed:
-                          () => _pickShiftModal(context, mandatory: false),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: primaryPurple,
-                        side: const BorderSide(color: primaryPurple),
-                        visualDensity: VisualDensity.compact,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  ],
+                )
+                // ===== PORTRAIT: tombol keranjang muncul di bawah =====
+                : Stack(
+                  children: [
+                    Column(
+                      children: [
+                        _header(false),
+                        Expanded(
+                          child: _menuArea(bottomPad: cart.isEmpty ? 16 : 88),
                         ),
-                      ),
-                      child: Text(
-                        activeShift == null ? 'Pilih' : 'Ganti',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                      ],
+                    ),
+                    Positioned(
+                      left: 16,
+                      right: 16,
+                      bottom: 12,
+                      child: IgnorePointer(
+                        ignoring: cart.isEmpty,
+                        child: AnimatedSlide(
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeOutCubic,
+                          offset:
+                              cart.isEmpty ? const Offset(0, 1.6) : Offset.zero,
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 200),
+                            opacity: cart.isEmpty ? 0 : 1,
+                            child: _cartButton(),
+                          ),
                         ),
                       ),
                     ),
                   ],
                 ),
-              ),
-              const Text(
-                'Daftar Menu',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Pilih menu yang ingin ditambahkan',
-                style: TextStyle(color: Colors.grey, fontSize: 14),
-              ),
-              const SizedBox(height: 20),
-
-              // ============================
-              // GRID MENU (dari Firestore)
-              // ============================
-              Expanded(
-                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream:
-                      menusRef(
-                        businessId!,
-                      ).where('isAvailable', isEqualTo: true).snapshots(),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(
-                        child: Text('Terjadi kesalahan: ${snapshot.error}'),
-                      );
-                    }
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-
-                    final docs =
-                        snapshot.data!.docs
-                            .where(
-                              (doc) =>
-                                  ((doc.data()['stock'] as num?)?.toInt() ??
-                                      0) >
-                                  0,
-                            )
-                            .toList()
-                          ..sort(
-                            (a, b) => (a.data()['name'] ?? '')
-                                .toString()
-                                .toLowerCase()
-                                .compareTo(
-                                  (b.data()['name'] ?? '')
-                                      .toString()
-                                      .toLowerCase(),
-                                ),
-                          );
-
-                    if (docs.isEmpty) {
-                      return const Center(
-                        child: Text(
-                          'Belum ada menu tersedia.\nMinta admin untuk menambahkan menu.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey),
-                        ),
-                      );
-                    }
-
-                    return GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 220,
-                            mainAxisExtent: 270,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                          ),
-                      itemCount: docs.length,
-                      itemBuilder: (context, index) {
-                        final doc = docs[index];
-                        final data = doc.data();
-                        final name = (data['name'] ?? '').toString();
-                        final price = (data['price'] as num?)?.toInt() ?? 0;
-                        final stock = (data['stock'] as num?)?.toInt() ?? 0;
-                        final imageUrl = (data['imageUrl'] ?? '').toString();
-                        final imageBase64 =
-                            (data['imageBase64'] ?? '').toString();
-
-                        return MenuItemCard(
-                          name: name,
-                          price: price,
-                          imageUrl: imageUrl,
-                          imageBase64: imageBase64,
-                          stock: stock,
-                          qtyInCart: cart[doc.id]?.qty ?? 0,
-                          onAdd: () => addToCart(doc.id, name, price, stock),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // ============================
-              // BUTTON KERANJANG
-              // ============================
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton.icon(
-                  onPressed: cart.isEmpty ? null : openCart,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPurple,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: lightPurple.withValues(alpha: 0.4),
-                    disabledForegroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  icon: const Icon(Icons.shopping_cart_outlined),
-                  label: Text(
-                    cart.isEmpty
-                        ? 'Keranjang kosong'
-                        : 'Lihat Keranjang ($totalItems) • ${formatRupiah(totalPrice)}',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -1012,6 +1229,7 @@ class MenuItemCard extends StatelessWidget {
   final int stock;
   final int qtyInCart;
   final VoidCallback onAdd;
+  final VoidCallback onRemove;
 
   const MenuItemCard({
     super.key,
@@ -1022,423 +1240,189 @@ class MenuItemCard extends StatelessWidget {
     required this.stock,
     required this.qtyInCart,
     required this.onAdd,
+    required this.onRemove,
   });
 
   Widget _placeholder() {
     return Container(
       width: double.infinity,
-      color: lightPurple.withValues(alpha: 0.25),
+      color: const Color(0xFFEDE7FF),
       child: const Icon(
         Icons.fastfood_outlined,
         color: primaryPurple,
-        size: 55,
+        size: 50,
+      ),
+    );
+  }
+
+  Widget _roundBtn(IconData icon, VoidCallback? onTap, {bool filled = true}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(11),
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color:
+              filled
+                  ? (onTap == null
+                      ? lightPurple.withValues(alpha: 0.5)
+                      : primaryPurple)
+                  : Colors.white,
+          borderRadius: BorderRadius.circular(11),
+          border: filled ? null : Border.all(color: const Color(0xFFE2DDEC)),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: filled ? Colors.white : primaryPurple,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final inCart = qtyInCart > 0;
+    final maxed = qtyInCart >= stock;
+    final low = stock <= 5;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFF0F0F0)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: inCart ? primaryPurple : cashierBorder,
+          width: inCart ? 1.5 : 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: primaryPurple.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(18),
-                      topRight: Radius.circular(18),
-                    ),
-                    child: MenuImage(
-                      imageBase64: imageBase64,
-                      imageUrl: imageUrl,
-                      placeholder: _placeholder(),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 8,
-                  left: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color:
-                          stock <= 5 ? Colors.orange.shade700 : Colors.black54,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      'Sisa $stock',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                if (qtyInCart > 0)
-                  Positioned(
-                    top: 8,
-                    right: 8,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: primaryPurple,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '$qtyInCart',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(20),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: maxed ? null : onAdd,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(19),
+                        ),
+                        child: MenuImage(
+                          imageBase64: imageBase64,
+                          imageUrl: imageUrl,
+                          placeholder: _placeholder(),
                         ),
                       ),
                     ),
-                  ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  formatRupiah(price),
-                  style: const TextStyle(
-                    color: primaryPurple,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  height: 38,
-                  child: ElevatedButton.icon(
-                    onPressed: qtyInCart >= stock ? null : onAdd,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryPurple,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(
-                      qtyInCart >= stock ? 'Maksimal' : 'Tambah',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// =========================
-// HALAMAN KERANJANG + CHECKOUT
-// =========================
-class CartScreen extends StatefulWidget {
-  final Map<String, CartItem> cart;
-  final String businessId;
-  final String? activeShift;
-
-  const CartScreen({
-    super.key,
-    required this.cart,
-    required this.businessId,
-    this.activeShift,
-  });
-
-  @override
-  State<CartScreen> createState() => _CartScreenState();
-}
-
-class _CartScreenState extends State<CartScreen> {
-  bool isLoading = false;
-
-  Map<String, CartItem> get cart => widget.cart;
-
-  int get totalItems => cart.values.fold(0, (s, i) => s + i.qty);
-  int get totalPrice => cart.values.fold(0, (s, i) => s + i.qty * i.price);
-
-  void changeQty(CartItem item, int delta) {
-    if (delta > 0 && item.qty + delta > item.maxQty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Stok ${item.name} tinggal ${item.maxQty}')),
-      );
-      return;
-    }
-
-    setState(() {
-      item.qty += delta;
-      if (item.qty <= 0) cart.remove(item.id);
-    });
-    if (cart.isEmpty) Navigator.pop(context);
-  }
-
-  Future<void> checkout() async {
-    if (cart.isEmpty) return;
-
-    final messenger = ScaffoldMessenger.of(context);
-    final navigator = Navigator.of(context);
-
-    setState(() => isLoading = true);
-
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      final items = cart.values.toList();
-      final checkoutTotalItems = items.fold<int>(
-        0,
-        (total, item) => total + item.qty,
-      );
-      final checkoutTotalPrice = items.fold<int>(
-        0,
-        (total, item) => total + item.price * item.qty,
-      );
-      final txRef = transactionsRef(widget.businessId).doc();
-
-      await FirebaseFirestore.instance.runTransaction((tx) async {
-        final refs = {
-          for (final item in items)
-            item.id: menusRef(widget.businessId).doc(item.id),
-        };
-        final stocks = <String, int>{};
-        for (final item in items) {
-          final ref = refs[item.id]!;
-          final snap = await tx.get(ref);
-          final stock = (snap.data()?['stock'] as num?)?.toInt() ?? 0;
-          if (stock < item.qty) {
-            throw Exception('Stok ${item.name} tidak cukup (sisa $stock)');
-          }
-          stocks[item.id] = stock;
-        }
-
-        for (final item in items) {
-          final ref = refs[item.id]!;
-          final next = stocks[item.id]! - item.qty;
-          tx.update(ref, {'stock': next, 'isAvailable': next > 0});
-        }
-
-        tx.set(txRef, {
-          'items':
-              items
-                  .map(
-                    (item) => {
-                      'menuId': item.id,
-                      'name': item.name,
-                      'price': item.price,
-                      'qty': item.qty,
-                      'subtotal': item.price * item.qty,
-                    },
-                  )
-                  .toList(),
-          'totalItems': checkoutTotalItems,
-          'total': checkoutTotalPrice,
-          'businessId': widget.businessId,
-          'cashierId': user?.uid,
-          'cashierEmail': user?.email,
-          'shift': widget.activeShift ?? 'Reguler',
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      });
-
-      cart.clear();
-
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Checkout berhasil')),
-      );
-      navigator.pop();
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isLoading = false);
-      messenger.showSnackBar(SnackBar(content: Text('Checkout gagal: $e')));
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final items = cart.values.toList();
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F7F7),
-      appBar: AppBar(
-        backgroundColor: primaryPurple,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Keranjang',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  return Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFEEEEEE)),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                formatRupiah(item.price),
-                                style: const TextStyle(
-                                  color: primaryPurple,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
                         ),
-                        IconButton(
-                          onPressed: () => changeQty(item, -1),
-                          icon: const Icon(Icons.remove_circle_outline),
-                          color: primaryPurple,
+                        decoration: BoxDecoration(
+                          color:
+                              low
+                                  ? Colors.orange.shade700
+                                  : Colors.black.withValues(alpha: 0.55),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        Text(
-                          '${item.qty}',
+                        child: Text(
+                          'Sisa $stock',
                           style: const TextStyle(
-                            fontSize: 16,
+                            color: Colors.white,
+                            fontSize: 10.5,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        IconButton(
-                          onPressed: () => changeQty(item, 1),
-                          icon: const Icon(Icons.add_circle_outline),
-                          color: primaryPurple,
-                        ),
-                      ],
+                      ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-            ),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFEEEEEE))),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Total ($totalItems item)',
-                        style: const TextStyle(fontSize: 15),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: cashierInk,
+                        height: 1.2,
                       ),
-                      Text(
-                        formatRupiah(totalPrice),
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: primaryPurple,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              formatRupiah(price),
+                              style: const TextStyle(
+                                color: primaryPurple,
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : checkout,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryPurple,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child:
-                          isLoading
-                              ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                              : const Text(
-                                'Checkout',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                        if (!inCart)
+                          _roundBtn(Icons.add_rounded, onAdd)
+                        else
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _roundBtn(
+                                Icons.remove_rounded,
+                                onRemove,
+                                filled: false,
+                              ),
+                              SizedBox(
+                                width: 26,
+                                child: Text(
+                                  '$qtyInCart',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
+                              _roundBtn(
+                                Icons.add_rounded,
+                                maxed ? null : onAdd,
+                              ),
+                            ],
+                          ),
+                      ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
