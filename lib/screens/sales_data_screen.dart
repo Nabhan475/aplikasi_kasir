@@ -166,7 +166,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                     border: Border.all(color: const Color(0xFFEEEEEE)),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
+                        color: Colors.black.withValues(alpha: 0.03),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -292,7 +292,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                                 backgroundColor: (!showAllDates &&
                                         _isSameDay(
                                             selectedDate, DateTime.now()))
-                                    ? lightPurple.withOpacity(0.18)
+                                    ? lightPurple.withValues(alpha: 0.18)
                                     : Colors.transparent,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -327,7 +327,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                                       : Colors.grey.shade300,
                                 ),
                                 backgroundColor: showAllDates
-                                    ? lightPurple.withOpacity(0.18)
+                                    ? lightPurple.withValues(alpha: 0.18)
                                     : Colors.transparent,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -371,7 +371,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
-                              color: primaryPurple.withOpacity(0.25),
+                              color: primaryPurple.withValues(alpha: 0.25),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -424,7 +424,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                           border: Border.all(color: const Color(0xFFEEEEEE)),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.02),
+                              color: Colors.black.withValues(alpha: 0.02),
                               blurRadius: 8,
                               offset: const Offset(0, 3),
                             ),
@@ -438,7 +438,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: BoxDecoration(
-                                    color: lightPurple.withOpacity(0.2),
+                                    color: lightPurple.withValues(alpha: 0.2),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: const Icon(
@@ -571,7 +571,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                               decoration: BoxDecoration(
                                 color: index == 0
                                     ? primaryPurple
-                                    : lightPurple.withOpacity(0.18),
+                                    : lightPurple.withValues(alpha: 0.18),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Center(
@@ -623,7 +623,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                                 vertical: 6,
                               ),
                               decoration: BoxDecoration(
-                                color: lightPurple.withOpacity(0.2),
+                                color: lightPurple.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(

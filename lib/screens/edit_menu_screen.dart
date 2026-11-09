@@ -283,7 +283,7 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
                     children: [
                       Switch(
                         value: available,
-                        activeColor: primaryColor,
+                        activeThumbColor: primaryColor,
                         onChanged: (value) async {
                           await doc.reference.update({'isAvailable': value});
                         },

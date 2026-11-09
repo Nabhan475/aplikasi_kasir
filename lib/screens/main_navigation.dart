@@ -126,7 +126,7 @@ class _MainNavigationState extends State<MainNavigation> {
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.16),
+                color: Colors.black.withValues(alpha: 0.16),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -199,7 +199,7 @@ class _AnimatedNavItem extends StatelessWidget {
           margin: const EdgeInsets.symmetric(horizontal: 3),
           decoration: BoxDecoration(
             color: isSelected
-                ? Colors.white.withOpacity(0.18)
+                ? Colors.white.withValues(alpha: 0.18)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(22),
           ),

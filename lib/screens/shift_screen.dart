@@ -48,8 +48,9 @@ class _ShiftScreenState extends State<ShiftScreen> {
     if (p.length != 2) return null;
     final h = int.tryParse(p[0]);
     final m = int.tryParse(p[1]);
-    if (h == null || m == null || h > 23 || m > 59 || h < 0 || m < 0)
+    if (h == null || m == null || h > 23 || m > 59 || h < 0 || m < 0) {
       return null;
+    }
     return TimeOfDay(hour: h, minute: m);
   }
 

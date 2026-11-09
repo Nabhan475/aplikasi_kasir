@@ -50,7 +50,7 @@ class ProfileScreen extends StatelessWidget {
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: lightPurple.withOpacity(0.25),
+                        color: lightPurple.withValues(alpha: 0.25),
                         shape: BoxShape.circle,
                         border: Border.all(color: primaryPurple, width: 3),
                       ),
@@ -90,7 +90,7 @@ class ProfileScreen extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: lightPurple.withOpacity(0.25),
+                        color: lightPurple.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -204,7 +204,7 @@ class ProfileInfoRow extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: const Color(0xFFAC94F5).withOpacity(0.25),
+            color: const Color(0xFFAC94F5).withValues(alpha: 0.25),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Icon(Icons.person_outline, color: primaryPurple),
