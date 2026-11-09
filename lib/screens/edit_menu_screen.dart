@@ -266,12 +266,15 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
 
                   title: Text(
                     name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
 
                   subtitle: Text(
-                    '${formatRupiah(price)}  •  '
-                    '${available ? 'Tersedia' : 'Habis'}',
+                    '${formatRupiah(price)} • ${available ? 'Ada' : 'Habis'}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: available ? primaryColor : Colors.grey,
                       fontWeight: FontWeight.w600,

@@ -88,6 +88,9 @@ class _CashierScreenState extends State<CashierScreen> {
         return PopScope(
           canPop: !mandatory,
           child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(sheetCtx).size.height * 0.85,
+            ),
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -124,16 +127,18 @@ class _CashierScreenState extends State<CashierScreen> {
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
                 ),
                 const SizedBox(height: 16),
-                StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: shiftsRef(businessId!).snapshots(),
-                  builder: (context, snapshot) {
-                    final docs = (snapshot.data?.docs ?? [])
-                        .where((d) => d.data()['active'] != false)
-                        .toList();
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                      stream: shiftsRef(businessId!).snapshots(),
+                      builder: (context, snapshot) {
+                        final docs = (snapshot.data?.docs ?? [])
+                            .where((d) => d.data()['active'] != false)
+                            .toList();
 
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+                        return Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
                         if (docs.isEmpty)
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -235,9 +240,11 @@ class _CashierScreenState extends State<CashierScreen> {
                             },
                           ),
                         ),
-                      ],
-                    );
-                  },
+                          ],
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -669,6 +676,8 @@ class _CashierScreenState extends State<CashierScreen> {
                           const SizedBox(height: 2),
                           Text(
                             activeShift ?? 'Belum memilih shift (Ketuk tombol)',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -746,11 +755,11 @@ class _CashierScreenState extends State<CashierScreen> {
 
                     return GridView.builder(
                       gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 220,
+                        mainAxisExtent: 270,
                         crossAxisSpacing: 12,
                         mainAxisSpacing: 12,
-                        childAspectRatio: 0.72,
                       ),
                       itemCount: docs.length,
                       itemBuilder: (context, index) {
@@ -1083,6 +1092,8 @@ class _CartScreenState extends State<CartScreen> {
                             children: [
                               Text(
                                 item.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,

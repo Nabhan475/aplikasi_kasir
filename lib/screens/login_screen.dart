@@ -71,8 +71,11 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isRegister = false;
   bool _switching = false;
 
-  double get _headerHeight =>
-      _isRegister ? registerHeaderHeight : loginHeaderHeight;
+  double get _headerHeight {
+    final height = MediaQuery.of(context).size.height;
+    final base = _isRegister ? registerHeaderHeight : loginHeaderHeight;
+    return base.clamp(0.0, height * 0.38).toDouble();
+  }
 
   @override
   void initState() {
@@ -267,13 +270,15 @@ class _LoginScreenState extends State<LoginScreen>
 
     // Ukuran dipastikan dari awal (rasio asli file) -> layout tidak melompat
     final bounds = composition.bounds;
-    final height = 300 * bounds.height / bounds.width;
+    final width = MediaQuery.of(context).size.width;
+    final lottieWidth = width < 340 ? width * 0.8 : 300.0;
+    final height = lottieWidth * bounds.height / bounds.width;
 
     return RepaintBoundary(
       child: FadeTransition(
         opacity: _lottieFadeIn,
         child: SizedBox(
-          width: 300,
+          width: lottieWidth,
           height: height,
           child: Lottie(
             composition: composition,

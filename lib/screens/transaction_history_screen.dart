@@ -200,7 +200,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
 
             itemCount: limitedDocs.length,
 
@@ -256,6 +256,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
                         Text(
                           'Kasir: '
                           '$cashierEmail',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Colors.grey,

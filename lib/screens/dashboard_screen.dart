@@ -60,8 +60,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final scale = (constraints.maxHeight / 760).clamp(0.72, 1.0);
             double s(double n) => n * scale;
 
-            return Padding(
-              padding: EdgeInsets.fromLTRB(s(16), s(12), s(16), s(68)),
+            return SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(s(16), s(12), s(16), 100),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -273,119 +273,117 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   SizedBox(height: s(10)),
 
-                  // AKTIVITAS - KONTEN LEBIH RINGKAS
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: s(14),
-                        vertical: s(8),
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(s(21)),
-                        border: Border.all(color: const Color(0xFFECE7F4)),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'Aktivitas Hari Ini',
-                                  style: TextStyle(
-                                    fontSize: s(15),
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF292532),
-                                  ),
+                  // AKTIVITAS
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: s(14),
+                      vertical: s(10),
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(s(21)),
+                      border: Border.all(color: const Color(0xFFECE7F4)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Aktivitas Hari Ini',
+                                style: TextStyle(
+                                  fontSize: s(15),
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF292532),
                                 ),
                               ),
-                              Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: s(10),
-                                  vertical: s(5),
+                            ),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: s(10),
+                                vertical: s(5),
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEDE7FF),
+                                borderRadius: BorderRadius.circular(s(12)),
+                              ),
+                              child: Text(
+                                'Hari ini',
+                                style: TextStyle(
+                                  color: purple,
+                                  fontSize: s(10),
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEDE7FF),
-                                  borderRadius: BorderRadius.circular(s(12)),
-                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: s(8)),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _activity(
+                                s,
+                                Icons.receipt_long_rounded,
+                                '0',
+                                'Transaksi',
+                                purple,
+                                const Color(0xFFEDE7FF),
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: s(40),
+                              color: const Color(0xFFEAE6F0),
+                            ),
+                            Expanded(
+                              child: _activity(
+                                s,
+                                Icons.shopping_bag_outlined,
+                                '0',
+                                'Pesanan',
+                                const Color(0xFFC454B0),
+                                const Color(0xFFFCE9F9),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: s(8)),
+                        Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: s(9),
+                            vertical: s(7),
+                          ),
+                          decoration: BoxDecoration(
+                            color: bg,
+                            borderRadius: BorderRadius.circular(s(11)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline_rounded,
+                                color: const Color(0xFF35A78E),
+                                size: s(15),
+                              ),
+                              SizedBox(width: s(7)),
+                              Expanded(
                                 child: Text(
-                                  'Hari ini',
+                                  'Operasional usaha berjalan normal',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    color: purple,
                                     fontSize: s(10),
-                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade600,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                          SizedBox(height: s(5)),
-                          Expanded(
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: _activity(
-                                    s,
-                                    Icons.receipt_long_rounded,
-                                    '0',
-                                    'Transaksi',
-                                    purple,
-                                    const Color(0xFFEDE7FF),
-                                  ),
-                                ),
-                                Container(
-                                  width: 1,
-                                  height: s(40),
-                                  color: const Color(0xFFEAE6F0),
-                                ),
-                                Expanded(
-                                  child: _activity(
-                                    s,
-                                    Icons.shopping_bag_outlined,
-                                    '0',
-                                    'Pesanan',
-                                    const Color(0xFFC454B0),
-                                    const Color(0xFFFCE9F9),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            width: double.infinity,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: s(9),
-                              vertical: s(7),
-                            ),
-                            decoration: BoxDecoration(
-                              color: bg,
-                              borderRadius: BorderRadius.circular(s(11)),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.check_circle_outline_rounded,
-                                  color: const Color(0xFF35A78E),
-                                  size: s(15),
-                                ),
-                                SizedBox(width: s(7)),
-                                Expanded(
-                                  child: Text(
-                                    'Operasional usaha berjalan normal',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                      fontSize: s(10),
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -413,7 +411,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(s(19)),
         child: Container(
-          height: s(92),
+          constraints: BoxConstraints(minHeight: s(92)),
           padding: EdgeInsets.symmetric(horizontal: s(10)),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(s(19)),

@@ -33,6 +33,11 @@ class KasirBuburAyamApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Kasir Bubur Ayam 72',
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: 0.85,
+        maxScaleFactor: 1.15,
+        child: child!,
+      ),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

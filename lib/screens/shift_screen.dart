@@ -451,29 +451,32 @@ class _ShiftScreenState extends State<ShiftScreen> {
   }
 
   Widget _stat(String label, String value, IconData icon) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, color: Colors.white70, size: 23),
-        const SizedBox(width: 9),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 23,
-                fontWeight: FontWeight.bold,
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: Colors.white70, size: 23),
+          const SizedBox(width: 9),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 23,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            Text(
-              label,
-              style: const TextStyle(color: Color(0xFFE9E1FF), fontSize: 11),
-            ),
-          ],
-        ),
-      ],
+              Text(
+                label,
+                style: const TextStyle(color: Color(0xFFE9E1FF), fontSize: 11),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

@@ -150,7 +150,7 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                 .compareTo(menuSummary[a]!['qty'] as int));
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 30),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -399,12 +399,16 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              formatRupiah(totalRevenue),
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                formatRupiah(totalRevenue),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
@@ -459,12 +463,16 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                               ],
                             ),
                             const SizedBox(height: 8),
-                            Text(
-                              '$totalItemsSold Porsi',
-                              style: const TextStyle(
-                                color: Color(0xFF26242B),
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '$totalItemsSold Porsi',
+                                style: const TextStyle(
+                                  color: Color(0xFF26242B),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ],
@@ -482,12 +490,14 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Rekap Menu Terjual',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF26242B),
+                    const Expanded(
+                      child: Text(
+                        'Rekap Menu Terjual',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF26242B),
+                        ),
                       ),
                     ),
                     Text(
@@ -597,6 +607,8 @@ class _SalesDataScreenState extends State<SalesDataScreen> {
                                 children: [
                                   Text(
                                     name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,

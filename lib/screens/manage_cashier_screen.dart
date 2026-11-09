@@ -181,9 +181,15 @@ class _ManageCashierScreenState extends State<ManageCashierScreen> {
                   ),
                   title: Text(
                     (data['username'] ?? '-').toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  subtitle: Text((data['email'] ?? '-').toString()),
+                  subtitle: Text(
+                    (data['email'] ?? '-').toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               );
             },
