@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'menu_image.dart';
 import 'utils.dart';
 
 const Color primaryPurple = Color(0xFF6952AE);
@@ -15,12 +16,14 @@ class CartItem {
   final String name;
   final int price;
   int qty;
+  int maxQty;
 
   CartItem({
     required this.id,
     required this.name,
     required this.price,
     this.qty = 1,
+    this.maxQty = 999999,
   });
 }
 
@@ -71,9 +74,9 @@ class _CashierScreenState extends State<CashierScreen> {
       setState(() {
         loadingBusiness = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal mengambil data usaha: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Gagal mengambil data usaha: $e')));
     }
   }
 
@@ -113,11 +116,18 @@ class _CashierScreenState extends State<CashierScreen> {
                 const SizedBox(height: 16),
                 const Row(
                   children: [
-                    Icon(Icons.access_time_filled, color: primaryPurple, size: 24),
+                    Icon(
+                      Icons.access_time_filled,
+                      color: primaryPurple,
+                      size: 24,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       'Pilih Shift Kerja',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ],
                 ),
@@ -132,114 +142,166 @@ class _CashierScreenState extends State<CashierScreen> {
                     child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
                       stream: shiftsRef(businessId!).snapshots(),
                       builder: (context, snapshot) {
-                        final docs = (snapshot.data?.docs ?? [])
-                            .where((d) => d.data()['active'] != false)
-                            .toList();
+                        final docs =
+                            (snapshot.data?.docs ?? [])
+                                .where((d) => d.data()['active'] != false)
+                                .toList();
 
                         return Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                        if (docs.isEmpty)
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF7F6FA),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Row(
-                              children: [
-                                Icon(Icons.info_outline, color: primaryPurple, size: 20),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Belum ada data shift di sistem. Anda dapat memilih Shift Reguler di bawah.',
-                                    style: TextStyle(fontSize: 12),
+                            if (docs.isEmpty)
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7F6FA),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info_outline,
+                                      color: primaryPurple,
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        'Belum ada data shift di sistem. Anda dapat memilih Shift Reguler di bawah.',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ...docs.map((doc) {
+                              final data = doc.data();
+                              final name = data['name']?.toString() ?? 'Shift';
+                              final start =
+                                  data['startTime']?.toString() ?? '00:00';
+                              final end =
+                                  data['endTime']?.toString() ?? '00:00';
+                              final label = '$name ($start - $end)';
+                              final isSelected = activeShift == label;
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isSelected
+                                          ? lightPurple.withValues(alpha: 0.15)
+                                          : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color:
+                                        isSelected
+                                            ? primaryPurple
+                                            : Colors.grey.shade300,
+                                    width: isSelected ? 1.5 : 1,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-                        ...docs.map((doc) {
-                          final data = doc.data();
-                          final name = data['name']?.toString() ?? 'Shift';
-                          final start = data['startTime']?.toString() ?? '00:00';
-                          final end = data['endTime']?.toString() ?? '00:00';
-                          final label = '$name ($start - $end)';
-                          final isSelected = activeShift == label;
-
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: BoxDecoration(
-                              color: isSelected ? lightPurple.withValues(alpha: 0.15) : Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected ? primaryPurple : Colors.grey.shade300,
-                                width: isSelected ? 1.5 : 1,
-                              ),
-                            ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: isSelected ? primaryPurple : const Color(0xFFF0EDF9),
-                                foregroundColor: isSelected ? Colors.white : primaryPurple,
-                                child: const Icon(Icons.schedule, size: 20),
-                              ),
-                              title: Text(
-                                name,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: isSelected ? primaryPurple : Colors.black87,
+                                child: ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor:
+                                        isSelected
+                                            ? primaryPurple
+                                            : const Color(0xFFF0EDF9),
+                                    foregroundColor:
+                                        isSelected
+                                            ? Colors.white
+                                            : primaryPurple,
+                                    child: const Icon(Icons.schedule, size: 20),
+                                  ),
+                                  title: Text(
+                                    name,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color:
+                                          isSelected
+                                              ? primaryPurple
+                                              : Colors.black87,
+                                    ),
+                                  ),
+                                  subtitle: Text('$start - $end WIB'),
+                                  trailing:
+                                      isSelected
+                                          ? const Icon(
+                                            Icons.check_circle,
+                                            color: primaryPurple,
+                                          )
+                                          : null,
+                                  onTap: () {
+                                    setState(() => activeShift = label);
+                                    Navigator.pop(sheetCtx);
+                                  },
+                                ),
+                              );
+                            }),
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(
+                                color:
+                                    activeShift ==
+                                            'Shift Reguler (08:00 - 17:00)'
+                                        ? lightPurple.withValues(alpha: 0.15)
+                                        : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color:
+                                      activeShift ==
+                                              'Shift Reguler (08:00 - 17:00)'
+                                          ? primaryPurple
+                                          : Colors.grey.shade300,
+                                  width:
+                                      activeShift ==
+                                              'Shift Reguler (08:00 - 17:00)'
+                                          ? 1.5
+                                          : 1,
                                 ),
                               ),
-                              subtitle: Text('$start - $end WIB'),
-                              trailing: isSelected
-                                  ? const Icon(Icons.check_circle, color: primaryPurple)
-                                  : null,
-                              onTap: () {
-                                setState(() => activeShift = label);
-                                Navigator.pop(sheetCtx);
-                              },
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor:
+                                      activeShift ==
+                                              'Shift Reguler (08:00 - 17:00)'
+                                          ? primaryPurple
+                                          : const Color(0xFFF0EDF9),
+                                  foregroundColor:
+                                      activeShift ==
+                                              'Shift Reguler (08:00 - 17:00)'
+                                          ? Colors.white
+                                          : primaryPurple,
+                                  child: const Icon(
+                                    Icons.work_outline,
+                                    size: 20,
+                                  ),
+                                ),
+                                title: const Text(
+                                  'Shift Reguler',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: const Text(
+                                  '08:00 - 17:00 WIB (Default)',
+                                ),
+                                trailing:
+                                    activeShift ==
+                                            'Shift Reguler (08:00 - 17:00)'
+                                        ? const Icon(
+                                          Icons.check_circle,
+                                          color: primaryPurple,
+                                        )
+                                        : null,
+                                onTap: () {
+                                  setState(
+                                    () =>
+                                        activeShift =
+                                            'Shift Reguler (08:00 - 17:00)',
+                                  );
+                                  Navigator.pop(sheetCtx);
+                                },
+                              ),
                             ),
-                          );
-                        }),
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: BoxDecoration(
-                            color: activeShift == 'Shift Reguler (08:00 - 17:00)'
-                                ? lightPurple.withValues(alpha: 0.15)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: activeShift == 'Shift Reguler (08:00 - 17:00)'
-                                  ? primaryPurple
-                                  : Colors.grey.shade300,
-                              width: activeShift == 'Shift Reguler (08:00 - 17:00)' ? 1.5 : 1,
-                            ),
-                          ),
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: activeShift == 'Shift Reguler (08:00 - 17:00)'
-                                  ? primaryPurple
-                                  : const Color(0xFFF0EDF9),
-                              foregroundColor: activeShift == 'Shift Reguler (08:00 - 17:00)'
-                                  ? Colors.white
-                                  : primaryPurple,
-                              child: const Icon(Icons.work_outline, size: 20),
-                            ),
-                            title: const Text(
-                              'Shift Reguler',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: const Text('08:00 - 17:00 WIB (Default)'),
-                            trailing: activeShift == 'Shift Reguler (08:00 - 17:00)'
-                                ? const Icon(Icons.check_circle, color: primaryPurple)
-                                : null,
-                            onTap: () {
-                              setState(() => activeShift = 'Shift Reguler (08:00 - 17:00)');
-                              Navigator.pop(sheetCtx);
-                            },
-                          ),
-                        ),
                           ],
                         );
                       },
@@ -283,7 +345,11 @@ class _CashierScreenState extends State<CashierScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  const Icon(Icons.shopping_bag_outlined, color: primaryPurple, size: 24),
+                  const Icon(
+                    Icons.shopping_bag_outlined,
+                    color: primaryPurple,
+                    size: 24,
+                  ),
                   const SizedBox(width: 8),
                   const Text(
                     'Pesanan Online Masuk',
@@ -303,15 +369,20 @@ class _CashierScreenState extends State<CashierScreen> {
               const SizedBox(height: 16),
               Expanded(
                 child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: ordersRef(businessId!)
-                      .orderBy('scheduledAt', descending: false)
-                      .snapshots(),
+                  stream:
+                      ordersRef(
+                        businessId!,
+                      ).orderBy('scheduledAt', descending: false).snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator(color: primaryPurple));
+                      return const Center(
+                        child: CircularProgressIndicator(color: primaryPurple),
+                      );
                     }
                     if (snapshot.hasError) {
-                      return Center(child: Text('Terjadi kesalahan: ${snapshot.error}'));
+                      return Center(
+                        child: Text('Terjadi kesalahan: ${snapshot.error}'),
+                      );
                     }
 
                     final docs = snapshot.data?.docs ?? [];
@@ -320,16 +391,26 @@ class _CashierScreenState extends State<CashierScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.inbox_outlined, size: 54, color: Colors.grey.shade400),
+                            Icon(
+                              Icons.inbox_outlined,
+                              size: 54,
+                              color: Colors.grey.shade400,
+                            ),
                             const SizedBox(height: 12),
                             const Text(
                               'Belum ada pesanan online',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Pesanan yang masuk akan muncul di sini',
-                              style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 13,
+                              ),
                             ),
                           ],
                         ),
@@ -342,11 +423,13 @@ class _CashierScreenState extends State<CashierScreen> {
                       itemBuilder: (context, index) {
                         final doc = docs[index];
                         final data = doc.data();
-                        final customer = data['customer']?.toString() ?? 'Pelanggan';
+                        final customer =
+                            data['customer']?.toString() ?? 'Pelanggan';
                         final menu = data['menu']?.toString() ?? 'Menu';
                         final qty = data['quantity'] ?? 1;
                         final note = data['note']?.toString() ?? '';
-                        final status = data['status']?.toString() ?? 'Terjadwal';
+                        final status =
+                            data['status']?.toString() ?? 'Terjadwal';
 
                         DateTime? scheduledDate;
                         final scheduledRaw = data['scheduledAt'];
@@ -357,9 +440,12 @@ class _CashierScreenState extends State<CashierScreen> {
                         }
 
                         Color statusColor = Colors.blue;
-                        if (status.toLowerCase() == 'diproses') statusColor = Colors.orange;
-                        if (status.toLowerCase() == 'selesai') statusColor = Colors.green;
-                        if (status.toLowerCase() == 'batal' || status.toLowerCase() == 'dibatalkan') {
+                        if (status.toLowerCase() == 'diproses')
+                          statusColor = Colors.orange;
+                        if (status.toLowerCase() == 'selesai')
+                          statusColor = Colors.green;
+                        if (status.toLowerCase() == 'batal' ||
+                            status.toLowerCase() == 'dibatalkan') {
                           statusColor = Colors.red;
                         }
 
@@ -385,9 +471,14 @@ class _CashierScreenState extends State<CashierScreen> {
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: statusColor.withValues(alpha: 0.12),
+                                      color: statusColor.withValues(
+                                        alpha: 0.12,
+                                      ),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
@@ -404,12 +495,19 @@ class _CashierScreenState extends State<CashierScreen> {
                               const SizedBox(height: 6),
                               Row(
                                 children: [
-                                  const Icon(Icons.restaurant_outlined, size: 16, color: primaryPurple),
+                                  const Icon(
+                                    Icons.restaurant_outlined,
+                                    size: 16,
+                                    color: primaryPurple,
+                                  ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
                                       '$menu x$qty porsi',
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -418,11 +516,18 @@ class _CashierScreenState extends State<CashierScreen> {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    const Icon(Icons.schedule, size: 16, color: Colors.grey),
+                                    const Icon(
+                                      Icons.schedule,
+                                      size: 16,
+                                      color: Colors.grey,
+                                    ),
                                     const SizedBox(width: 6),
                                     Text(
                                       '${scheduledDate.day.toString().padLeft(2, '0')}/${scheduledDate.month.toString().padLeft(2, '0')}/${scheduledDate.year} â€¢ ${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')} WIB',
-                                      style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -437,12 +542,19 @@ class _CashierScreenState extends State<CashierScreen> {
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.notes, size: 14, color: Colors.amber.shade800),
+                                      Icon(
+                                        Icons.notes,
+                                        size: 14,
+                                        color: Colors.amber.shade800,
+                                      ),
                                       const SizedBox(width: 6),
                                       Expanded(
                                         child: Text(
                                           note,
-                                          style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.amber.shade900,
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -456,26 +568,39 @@ class _CashierScreenState extends State<CashierScreen> {
                                   if (status.toLowerCase() == 'terjadwal')
                                     FilledButton.icon(
                                       onPressed: () async {
-                                        await doc.reference.update({'status': 'Diproses'});
+                                        await doc.reference.update({
+                                          'status': 'Diproses',
+                                        });
                                       },
                                       style: FilledButton.styleFrom(
                                         backgroundColor: primaryPurple,
                                         visualDensity: VisualDensity.compact,
                                       ),
-                                      icon: const Icon(Icons.soup_kitchen, size: 16),
-                                      label: const Text('Mulai Proses', style: TextStyle(fontSize: 12)),
+                                      icon: const Icon(
+                                        Icons.soup_kitchen,
+                                        size: 16,
+                                      ),
+                                      label: const Text(
+                                        'Mulai Proses',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                     ),
                                   if (status.toLowerCase() == 'diproses')
                                     FilledButton.icon(
                                       onPressed: () async {
-                                        await doc.reference.update({'status': 'Selesai'});
+                                        await doc.reference.update({
+                                          'status': 'Selesai',
+                                        });
                                       },
                                       style: FilledButton.styleFrom(
                                         backgroundColor: Colors.green,
                                         visualDensity: VisualDensity.compact,
                                       ),
                                       icon: const Icon(Icons.check, size: 16),
-                                      label: const Text('Selesaikan', style: TextStyle(fontSize: 12)),
+                                      label: const Text(
+                                        'Selesaikan',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                     ),
                                   if (status.toLowerCase() != 'selesai' &&
                                       status.toLowerCase() != 'batal' &&
@@ -483,14 +608,21 @@ class _CashierScreenState extends State<CashierScreen> {
                                     const SizedBox(width: 8),
                                     OutlinedButton(
                                       onPressed: () async {
-                                        await doc.reference.update({'status': 'Batal'});
+                                        await doc.reference.update({
+                                          'status': 'Batal',
+                                        });
                                       },
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: Colors.red,
-                                        side: const BorderSide(color: Colors.red),
+                                        side: const BorderSide(
+                                          color: Colors.red,
+                                        ),
                                         visualDensity: VisualDensity.compact,
                                       ),
-                                      child: const Text('Batal', style: TextStyle(fontSize: 12)),
+                                      child: const Text(
+                                        'Batal',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -510,12 +642,21 @@ class _CashierScreenState extends State<CashierScreen> {
     );
   }
 
-  void addToCart(String id, String name, int price) {
+  void addToCart(String id, String name, int price, int stock) {
+    final current = cart[id]?.qty ?? 0;
+    if (current >= stock) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Stok $name tinggal $stock')));
+      return;
+    }
+
     setState(() {
       if (cart.containsKey(id)) {
         cart[id]!.qty++;
+        cart[id]!.maxQty = stock;
       } else {
-        cart[id] = CartItem(id: id, name: name, price: price);
+        cart[id] = CartItem(id: id, name: name, price: price, maxQty: stock);
       }
     });
   }
@@ -527,11 +668,12 @@ class _CashierScreenState extends State<CashierScreen> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => CartScreen(
-          cart: cart,
-          businessId: id,
-          activeShift: activeShift,
-        ),
+        builder:
+            (_) => CartScreen(
+              cart: cart,
+              businessId: id,
+              activeShift: activeShift,
+            ),
       ),
     );
     if (mounted) setState(() {});
@@ -568,10 +710,12 @@ class _CashierScreenState extends State<CashierScreen> {
             stream: ordersRef(businessId!).snapshots(),
             builder: (context, snapshot) {
               final docs = snapshot.data?.docs ?? [];
-              final pending = docs.where((d) {
-                final s = (d.data()['status'] ?? '').toString().toLowerCase();
-                return s != 'selesai' && s != 'dibatalkan' && s != 'batal';
-              }).toList();
+              final pending =
+                  docs.where((d) {
+                    final s =
+                        (d.data()['status'] ?? '').toString().toLowerCase();
+                    return s != 'selesai' && s != 'dibatalkan' && s != 'batal';
+                  }).toList();
               final count = pending.length;
               return Stack(
                 alignment: Alignment.center,
@@ -628,14 +772,18 @@ class _CashierScreenState extends State<CashierScreen> {
               // ============================
               Container(
                 margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: activeShift != null
-                        ? lightPurple.withValues(alpha: 0.5)
-                        : Colors.orange.shade200,
+                    color:
+                        activeShift != null
+                            ? lightPurple.withValues(alpha: 0.5)
+                            : Colors.orange.shade200,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -650,13 +798,18 @@ class _CashierScreenState extends State<CashierScreen> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: (activeShift != null ? primaryPurple : Colors.orange)
+                        color: (activeShift != null
+                                ? primaryPurple
+                                : Colors.orange)
                             .withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(
                         Icons.access_time_filled_rounded,
-                        color: activeShift != null ? primaryPurple : Colors.orange.shade800,
+                        color:
+                            activeShift != null
+                                ? primaryPurple
+                                : Colors.orange.shade800,
                         size: 20,
                       ),
                     ),
@@ -681,16 +834,18 @@ class _CashierScreenState extends State<CashierScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
-                              color: activeShift != null
-                                  ? primaryPurple
-                                  : Colors.orange.shade800,
+                              color:
+                                  activeShift != null
+                                      ? primaryPurple
+                                      : Colors.orange.shade800,
                             ),
                           ),
                         ],
                       ),
                     ),
                     OutlinedButton(
-                      onPressed: () => _pickShiftModal(context, mandatory: false),
+                      onPressed:
+                          () => _pickShiftModal(context, mandatory: false),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryPurple,
                         side: const BorderSide(color: primaryPurple),
@@ -701,7 +856,10 @@ class _CashierScreenState extends State<CashierScreen> {
                       ),
                       child: Text(
                         activeShift == null ? 'Pilih' : 'Ganti',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
                   ],
@@ -723,9 +881,10 @@ class _CashierScreenState extends State<CashierScreen> {
               // ============================
               Expanded(
                 child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: menusRef(businessId!)
-                      .where('isAvailable', isEqualTo: true)
-                      .snapshots(),
+                  stream:
+                      menusRef(
+                        businessId!,
+                      ).where('isAvailable', isEqualTo: true).snapshots(),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
@@ -736,12 +895,25 @@ class _CashierScreenState extends State<CashierScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
 
-                    final docs = snapshot.data!.docs.toList()
-                      ..sort((a, b) => (a.data()['name'] ?? '')
-                          .toString()
-                          .toLowerCase()
-                          .compareTo(
-                              (b.data()['name'] ?? '').toString().toLowerCase()));
+                    final docs =
+                        snapshot.data!.docs
+                            .where(
+                              (doc) =>
+                                  ((doc.data()['stock'] as num?)?.toInt() ??
+                                      0) >
+                                  0,
+                            )
+                            .toList()
+                          ..sort(
+                            (a, b) => (a.data()['name'] ?? '')
+                                .toString()
+                                .toLowerCase()
+                                .compareTo(
+                                  (b.data()['name'] ?? '')
+                                      .toString()
+                                      .toLowerCase(),
+                                ),
+                          );
 
                     if (docs.isEmpty) {
                       return const Center(
@@ -756,25 +928,30 @@ class _CashierScreenState extends State<CashierScreen> {
                     return GridView.builder(
                       gridDelegate:
                           const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 220,
-                        mainAxisExtent: 270,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                      ),
+                            maxCrossAxisExtent: 220,
+                            mainAxisExtent: 270,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 12,
+                          ),
                       itemCount: docs.length,
                       itemBuilder: (context, index) {
                         final doc = docs[index];
                         final data = doc.data();
                         final name = (data['name'] ?? '').toString();
                         final price = (data['price'] as num?)?.toInt() ?? 0;
+                        final stock = (data['stock'] as num?)?.toInt() ?? 0;
                         final imageUrl = (data['imageUrl'] ?? '').toString();
+                        final imageBase64 =
+                            (data['imageBase64'] ?? '').toString();
 
                         return MenuItemCard(
                           name: name,
                           price: price,
                           imageUrl: imageUrl,
+                          imageBase64: imageBase64,
+                          stock: stock,
                           qtyInCart: cart[doc.id]?.qty ?? 0,
-                          onAdd: () => addToCart(doc.id, name, price),
+                          onAdd: () => addToCart(doc.id, name, price, stock),
                         );
                       },
                     );
@@ -829,6 +1006,8 @@ class MenuItemCard extends StatelessWidget {
   final String name;
   final int price;
   final String imageUrl;
+  final String imageBase64;
+  final int stock;
   final int qtyInCart;
   final VoidCallback onAdd;
 
@@ -837,6 +1016,8 @@ class MenuItemCard extends StatelessWidget {
     required this.name,
     required this.price,
     required this.imageUrl,
+    required this.imageBase64,
+    required this.stock,
     required this.qtyInCart,
     required this.onAdd,
   });
@@ -880,14 +1061,34 @@ class MenuItemCard extends StatelessWidget {
                       topLeft: Radius.circular(18),
                       topRight: Radius.circular(18),
                     ),
-                    child: imageUrl.isEmpty
-                        ? _placeholder()
-                        : Image.network(
-                            imageUrl,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _placeholder(),
-                          ),
+                    child: MenuImage(
+                      imageBase64: imageBase64,
+                      imageUrl: imageUrl,
+                      placeholder: _placeholder(),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 8,
+                  left: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          stock <= 5 ? Colors.orange.shade700 : Colors.black54,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Sisa $stock',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
                 if (qtyInCart > 0)
@@ -944,7 +1145,7 @@ class MenuItemCard extends StatelessWidget {
                   width: double.infinity,
                   height: 38,
                   child: ElevatedButton.icon(
-                    onPressed: onAdd,
+                    onPressed: qtyInCart >= stock ? null : onAdd,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryPurple,
                       foregroundColor: Colors.white,
@@ -954,8 +1155,8 @@ class MenuItemCard extends StatelessWidget {
                       ),
                     ),
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text(
-                      'Tambah',
+                    label: Text(
+                      qtyInCart >= stock ? 'Maksimal' : 'Tambah',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -1000,6 +1201,13 @@ class _CartScreenState extends State<CartScreen> {
   int get totalPrice => cart.values.fold(0, (s, i) => s + i.qty * i.price);
 
   void changeQty(CartItem item, int delta) {
+    if (delta > 0 && item.qty + delta > item.maxQty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Stok ${item.name} tinggal ${item.maxQty}')),
+      );
+      return;
+    }
+
     setState(() {
       item.qty += delta;
       if (item.qty <= 0) cart.remove(item.id);
@@ -1017,24 +1225,60 @@ class _CartScreenState extends State<CartScreen> {
 
     try {
       final user = FirebaseAuth.instance.currentUser;
+      final items = cart.values.toList();
+      final checkoutTotalItems = items.fold<int>(
+        0,
+        (total, item) => total + item.qty,
+      );
+      final checkoutTotalPrice = items.fold<int>(
+        0,
+        (total, item) => total + item.price * item.qty,
+      );
+      final txRef = transactionsRef(widget.businessId).doc();
 
-      await transactionsRef(widget.businessId).add({
-        'items': cart.values
-            .map((i) => {
-                  'menuId': i.id,
-                  'name': i.name,
-                  'price': i.price,
-                  'qty': i.qty,
-                  'subtotal': i.price * i.qty,
-                })
-            .toList(),
-        'totalItems': totalItems,
-        'total': totalPrice,
-        'businessId': widget.businessId,
-        'cashierId': user?.uid,
-        'cashierEmail': user?.email,
-        'shift': widget.activeShift ?? 'Reguler',
-        'createdAt': FieldValue.serverTimestamp(),
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final refs = {
+          for (final item in items)
+            item.id: menusRef(widget.businessId).doc(item.id),
+        };
+        final stocks = <String, int>{};
+        for (final item in items) {
+          final ref = refs[item.id]!;
+          final snap = await tx.get(ref);
+          final stock = (snap.data()?['stock'] as num?)?.toInt() ?? 0;
+          if (stock < item.qty) {
+            throw Exception('Stok ${item.name} tidak cukup (sisa $stock)');
+          }
+          stocks[item.id] = stock;
+        }
+
+        for (final item in items) {
+          final ref = refs[item.id]!;
+          final next = stocks[item.id]! - item.qty;
+          tx.update(ref, {'stock': next, 'isAvailable': next > 0});
+        }
+
+        tx.set(txRef, {
+          'items':
+              items
+                  .map(
+                    (item) => {
+                      'menuId': item.id,
+                      'name': item.name,
+                      'price': item.price,
+                      'qty': item.qty,
+                      'subtotal': item.price * item.qty,
+                    },
+                  )
+                  .toList(),
+          'totalItems': checkoutTotalItems,
+          'total': checkoutTotalPrice,
+          'businessId': widget.businessId,
+          'cashierId': user?.uid,
+          'cashierEmail': user?.email,
+          'shift': widget.activeShift ?? 'Reguler',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
       });
 
       cart.clear();
@@ -1046,9 +1290,7 @@ class _CartScreenState extends State<CartScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => isLoading = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Checkout gagal: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text('Checkout gagal: $e')));
     }
   }
 
@@ -1172,22 +1414,23 @@ class _CartScreenState extends State<CartScreen> {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
+                      child:
+                          isLoading
+                              ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.white,
+                                ),
+                              )
+                              : const Text(
+                                'Checkout',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            )
-                          : const Text(
-                              'Checkout',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
                     ),
                   ),
                 ],
