@@ -440,10 +440,12 @@ class _CashierScreenState extends State<CashierScreen> {
                         }
 
                         Color statusColor = Colors.blue;
-                        if (status.toLowerCase() == 'diproses')
+                        if (status.toLowerCase() == 'diproses') {
                           statusColor = Colors.orange;
-                        if (status.toLowerCase() == 'selesai')
+                        }
+                        if (status.toLowerCase() == 'selesai') {
                           statusColor = Colors.green;
+                        }
                         if (status.toLowerCase() == 'batal' ||
                             status.toLowerCase() == 'dibatalkan') {
                           statusColor = Colors.red;

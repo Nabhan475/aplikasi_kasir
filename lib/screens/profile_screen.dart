@@ -615,13 +615,11 @@ class _InfoRow extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-  final VoidCallback? onCopy;
 
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
-    this.onCopy,
   });
 
   @override
@@ -660,17 +658,6 @@ class _InfoRow extends StatelessWidget {
             ],
           ),
         ),
-        if (onCopy != null)
-          IconButton(
-            onPressed: onCopy,
-            tooltip: 'Salin',
-            visualDensity: VisualDensity.compact,
-            icon: Icon(
-              Icons.copy_rounded,
-              size: 18,
-              color: Colors.grey.shade600,
-            ),
-          ),
       ],
     );
   }
