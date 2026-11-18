@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'page_header.dart';
 import 'utils.dart';
 
 class InventoriScreen extends StatefulWidget {
@@ -324,103 +325,11 @@ class _InventoriScreenState extends State<InventoriScreen> {
     }
   }
 
-  Widget _header(int total) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF8068CB), purple],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.maybePop(context),
-                tooltip: 'Kembali',
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-              ),
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .18),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Icon(
-                  Icons.inventory_2_outlined,
-                  color: Colors.white,
-                  size: 25,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Inventori',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Pantau stok bahan baku usaha',
-                      style: TextStyle(color: Color(0xFFE9E1FF), fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 18),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .13),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: .18)),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.category_outlined,
-                  color: Colors.white70,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$total',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 25,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Text(
-                      'Jenis Bahan Baku',
-                      style: TextStyle(color: Color(0xFFE9E1FF), fontSize: 12),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _header(int total) => PageHeader(
+        title: 'Inventori',
+        subtitle: '$total jenis bahan baku',
+        onBack: () => Navigator.maybePop(context),
+      );
 
   Widget _materialCard(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data();

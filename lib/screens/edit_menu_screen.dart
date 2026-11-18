@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'menu_image.dart';
+import 'page_header.dart';
 import 'utils.dart';
 
 enum _MenuFilter { all, available, soldOut }
@@ -170,101 +171,33 @@ class _EditMenuScreenState extends State<EditMenuScreen> {
   }
 
   // ---------- HEADER ----------
-  Widget _header(int total, int available, int soldOut) {
-    final top = MediaQuery.of(context).padding.top;
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, top + 18, 20, 24),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF8068CB), purple],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-      ),
-      child: Column(
+  Widget _header(int total, int available, int soldOut) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .18),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Icon(Icons.restaurant_menu_rounded,
-                    color: Colors.white, size: 26),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Edit Menu',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Kelola menu, harga, dan stok',
-                      style: TextStyle(color: Color(0xFFE9E1FF), fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const PageHeader(
+            title: 'Edit Menu',
+            subtitle: 'Kelola menu, harga, dan stok',
           ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .13),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: .18)),
-            ),
-            child: Row(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(child: _stat('Total', '$total')),
-                _vline(),
-                Expanded(child: _stat('Tersedia', '$available')),
-                _vline(),
-                Expanded(child: _stat('Habis', '$soldOut')),
+                StatChip(label: 'Total', value: '$total'),
+                StatChip(
+                    label: 'Tersedia',
+                    value: '$available',
+                    color: const Color(0xFF1F7F6A)),
+                StatChip(
+                    label: 'Habis',
+                    value: '$soldOut',
+                    color: const Color(0xFFD64550)),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _vline() =>
-      Container(height: 36, width: 1, color: Colors.white.withValues(alpha: .25));
-
-  Widget _stat(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 22,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(color: Color(0xFFE9E1FF), fontSize: 11.5),
-        ),
-      ],
-    );
-  }
+      );
 
   // ---------- SEARCH + FILTER ----------
   Widget _searchBar() {

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'page_header.dart';
 import 'utils.dart';
 
 class ShiftScreen extends StatefulWidget {
@@ -356,129 +357,11 @@ class _ShiftScreenState extends State<ShiftScreen> {
     }
   }
 
-  Widget _header(int total, int active) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 26),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF8068CB), purple],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              IconButton(
-                onPressed: () => Navigator.maybePop(context),
-                tooltip: 'Kembali',
-                icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-              ),
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .18),
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                child: const Icon(
-                  Icons.schedule_rounded,
-                  color: Colors.white,
-                  size: 26,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Pengaturan Shift',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 21,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      'Kelola jadwal kerja karyawan',
-                      style: TextStyle(color: Color(0xFFE9E1FF), fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .13),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: .18)),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _stat(
-                    'Total Shift',
-                    '$total',
-                    Icons.calendar_month_rounded,
-                  ),
-                ),
-                Container(
-                  height: 43,
-                  width: 1,
-                  color: Colors.white.withValues(alpha: .25),
-                ),
-                Expanded(
-                  child: _stat(
-                    'Shift Aktif',
-                    '$active',
-                    Icons.check_circle_outline_rounded,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _stat(String label, String value, IconData icon) {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: Colors.white70, size: 23),
-          const SizedBox(width: 9),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 23,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                label,
-                style: const TextStyle(color: Color(0xFFE9E1FF), fontSize: 11),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _header(int total, int active) => PageHeader(
+        title: 'Pengaturan Shift',
+        subtitle: '$total jadwal • $active aktif',
+        onBack: () => Navigator.maybePop(context),
+      );
 
   Widget _emptyState() {
     return Container(

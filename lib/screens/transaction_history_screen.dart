@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'page_header.dart';
 import 'utils.dart';
 
 class TransactionHistoryScreen extends StatefulWidget {
@@ -128,15 +129,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
 
-      appBar: AppBar(
-        backgroundColor: primaryPurple,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Riwayat Transaksi',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: slimAppBar('Riwayat Transaksi'),
 
       // ======================================
       // HANYA TRANSAKSI DARI BUSINESS INI

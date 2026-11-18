@@ -616,17 +616,21 @@ class _CashierScreenState extends State<CashierScreen> {
       clipBehavior: Clip.none,
       children: [
         Material(
-          color: Colors.white.withValues(alpha: 0.18),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(14),
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(14),
             child: Tooltip(
               message: tooltip,
-              child: SizedBox(
+              child: Container(
                 width: 42,
                 height: 42,
-                child: Icon(icon, color: Colors.white, size: 22),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: cashierBorder),
+                ),
+                child: Icon(icon, color: primaryPurple, size: 22),
               ),
             ),
           ),
@@ -641,16 +645,15 @@ class _CashierScreenState extends State<CashierScreen> {
               decoration: BoxDecoration(
                 color: Colors.redAccent,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: primaryPurple, width: 1.5),
+                border: Border.all(color: Colors.white, width: 1.5),
               ),
               child: Text(
                 badge > 99 ? '99+' : '$badge',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -664,46 +667,35 @@ class _CashierScreenState extends State<CashierScreen> {
       onTap: () => _pickShiftModal(),
       borderRadius: BorderRadius.circular(14),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: has ? 0.16 : 0.26),
+          color: has ? Colors.white : const Color(0xFFFFF3DF),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.28)),
+          border: Border.all(
+              color: has ? cashierBorder : const Color(0xFFF0C987)),
         ),
         child: Row(
           children: [
             Icon(
               has ? Icons.access_time_filled_rounded : Icons.warning_amber,
-              color: has ? Colors.white : const Color(0xFFFFE08A),
+              color: has ? primaryPurple : const Color(0xFFC77D1A),
               size: 18,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                activeShift ?? 'Belum memilih shift',
+                activeShift ?? 'Pilih shift',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                ),
+                    color: cashierInk,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600),
               ),
             ),
-            const SizedBox(width: 6),
-            Text(
-              has ? 'Ganti' : 'Pilih',
-              style: const TextStyle(
-                color: Color(0xFFE9E1FF),
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: Color(0xFFE9E1FF),
-              size: 18,
-            ),
+            const Icon(Icons.keyboard_arrow_down_rounded,
+                color: primaryPurple, size: 20),
           ],
         ),
       ),
@@ -713,51 +705,14 @@ class _CashierScreenState extends State<CashierScreen> {
   Widget _header(bool landscape) {
     final top = MediaQuery.paddingOf(context).top;
 
-    final titleBlock = Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: const Icon(
-            Icons.point_of_sale_rounded,
-            color: Colors.white,
-            size: 25,
-          ),
-        ),
-        const SizedBox(width: 12),
-        const Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Kasir',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 21,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              'Pilih menu & proses pesanan',
-              style: TextStyle(color: Color(0xFFE9E1FF), fontSize: 11.5),
-            ),
-          ],
-        ),
-      ],
-    );
-
-    final actions = StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+    final bell = StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
       stream: ordersRef(businessId!).snapshots(),
       builder: (context, snapshot) {
         final docs = snapshot.data?.docs ?? [];
-        final count =
-            docs.where((d) {
-              final s = (d.data()['status'] ?? '').toString().toLowerCase();
-              return s != 'selesai' && s != 'dibatalkan' && s != 'batal';
-            }).length;
+        final count = docs.where((d) {
+          final s = (d.data()['status'] ?? '').toString().toLowerCase();
+          return s != 'selesai' && s != 'dibatalkan' && s != 'batal';
+        }).length;
         return _headerIconButton(
           icon: Icons.notifications_none_rounded,
           tooltip: 'Pesanan Online',
@@ -767,40 +722,21 @@ class _CashierScreenState extends State<CashierScreen> {
       },
     );
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        18,
-        top + (landscape ? 10 : 14),
-        18,
-        landscape ? 14 : 18,
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, top + 10, 16, 6),
+      child: Row(
+        children: [
+          const Text(
+            'Kasir',
+            style: TextStyle(
+                fontSize: 21, fontWeight: FontWeight.bold, color: cashierInk),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: _shiftChip()),
+          const SizedBox(width: 10),
+          bell,
+        ],
       ),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF8068CB), primaryPurple],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child:
-          landscape
-              ? Row(
-                children: [
-                  titleBlock,
-                  const SizedBox(width: 20),
-                  Expanded(child: _shiftChip()),
-                  const SizedBox(width: 12),
-                  actions,
-                ],
-              )
-              : Column(
-                children: [
-                  Row(children: [Expanded(child: titleBlock), actions]),
-                  const SizedBox(height: 14),
-                  _shiftChip(),
-                ],
-              ),
     );
   }
 

@@ -233,106 +233,52 @@ class _Header extends StatelessWidget {
     final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
     final hasPhoto = photoUrl != null && photoUrl!.isNotEmpty;
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20, top + 18, 20, 28),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF8068CB), ProfileScreen.purple],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(34)),
-      ),
-      child: Column(
+    return Padding(
+      padding: EdgeInsets.fromLTRB(18, top + 16, 18, 4),
+      child: Row(
         children: [
-          const Text(
-            'Profil Saya',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 17,
-              fontWeight: FontWeight.bold,
-            ),
+          CircleAvatar(
+            radius: 27,
+            backgroundColor: const Color(0xFFEDE7FF),
+            backgroundImage: hasPhoto ? NetworkImage(photoUrl!) : null,
+            child: hasPhoto
+                ? null
+                : Text(initial,
+                    style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: ProfileScreen.purple)),
           ),
-          const SizedBox(height: 20),
-
-          // AVATAR
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withValues(alpha: 0.25),
-            ),
-            child: CircleAvatar(
-              radius: 46,
-              backgroundColor: Colors.white,
-              backgroundImage: hasPhoto ? NetworkImage(photoUrl!) : null,
-              child:
-                  hasPhoto
-                      ? null
-                      : Text(
-                        initial,
-                        style: const TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: ProfileScreen.purple,
-                        ),
-                      ),
-            ),
-          ),
-
-          const SizedBox(height: 14),
-
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            email,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFFE9E1FF), fontSize: 13),
-          ),
-          const SizedBox(height: 14),
-
-          // CHIP ROLE
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  isAdmin
-                      ? Icons.admin_panel_settings_outlined
-                      : Icons.point_of_sale_rounded,
-                  color: Colors.white,
-                  size: 16,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  isAdmin ? 'Admin' : 'Kasir',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text(name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.bold,
+                        color: ProfileScreen.ink)),
+                Text(email,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 12.5, color: Colors.grey.shade600)),
               ],
             ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEDE7FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Text(isAdmin ? 'Admin' : 'Kasir',
+                style: const TextStyle(
+                    color: ProfileScreen.purple,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold)),
           ),
         ],
       ),

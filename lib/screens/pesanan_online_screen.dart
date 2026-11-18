@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'page_header.dart';
 import 'utils.dart';
 
 class PesananOnlineScreen extends StatefulWidget {
@@ -332,43 +333,11 @@ class _PesananOnlineScreenState extends State<PesananOnlineScreen> {
     }
   }
 
-  Widget header() => Container(
-    padding: const EdgeInsets.fromLTRB(12, 12, 18, 22),
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(colors: [Color(0xFF8068CB), purple]),
-      borderRadius: BorderRadius.vertical(bottom: Radius.circular(26)),
-    ),
-    child: Row(
-      children: [
-        IconButton(
-          onPressed: () => Navigator.maybePop(context),
-          tooltip: 'Kembali',
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-        ),
-        const Icon(Icons.calendar_month, color: Colors.white, size: 30),
-        const SizedBox(width: 12),
-        const Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Pesanan Online',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 21,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                'Jadwal pesanan pelanggan',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
+  Widget header() => PageHeader(
+        title: 'Pesanan Online',
+        subtitle: 'Jadwal pesanan pelanggan',
+        onBack: () => Navigator.maybePop(context),
+      );
 
   Widget calendar(Set<String> booked) {
     final first = DateTime(month.year, month.month, 1).weekday % 7;

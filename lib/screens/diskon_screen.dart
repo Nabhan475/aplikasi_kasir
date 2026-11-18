@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
+import 'page_header.dart';
 import 'utils.dart';
 
 class DiskonScreen extends StatefulWidget {
@@ -291,15 +292,7 @@ class _DiskonScreenState extends State<DiskonScreen> {
     if (businessId == null) {
       return Scaffold(
         backgroundColor: const Color(0xFFF7F6FA),
-        appBar: AppBar(
-          title: const Text(
-            'Diskon & Promo',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-          backgroundColor: purple,
-          foregroundColor: Colors.white,
-          elevation: 0,
-        ),
+        appBar: slimAppBar('Diskon & Promo'),
         body: const Center(
           child: Text('Data usaha tidak ditemukan. Silakan login ulang.'),
         ),
@@ -308,15 +301,7 @@ class _DiskonScreenState extends State<DiskonScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F6FA),
-      appBar: AppBar(
-        title: const Text(
-          'Diskon & Promo',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        backgroundColor: purple,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
+      appBar: slimAppBar('Diskon & Promo'),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
         stream: discounts.orderBy('endAt').snapshots(),
         builder: (context, snapshot) {

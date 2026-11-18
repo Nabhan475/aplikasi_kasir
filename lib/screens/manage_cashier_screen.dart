@@ -3,6 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'page_header.dart';
+
 class ManageCashierScreen extends StatefulWidget {
   const ManageCashierScreen({super.key});
 
@@ -108,15 +110,7 @@ class _ManageCashierScreenState extends State<ManageCashierScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F7F7),
 
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        title: const Text(
-          'Kelola Akun Kasir',
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-      ),
+      appBar: slimAppBar('Kelola Akun Kasir'),
 
       floatingActionButton: FloatingActionButton.extended(
         backgroundColor: primaryColor,
