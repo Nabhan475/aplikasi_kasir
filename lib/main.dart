@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 import 'firebase_options.dart';
+import 'screens/internet_connection_popup.dart';
 import 'screens/login_screen.dart';
 
 class NoTransition extends PageTransitionsBuilder {
@@ -28,16 +29,24 @@ void main() async {
 class KasirBuburAyamApp extends StatelessWidget {
   const KasirBuburAyamApp({super.key});
 
+  static final GlobalKey<NavigatorState> _navigatorKey =
+      GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: _navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Kasir Bubur Ayam 72',
-      builder: (context, child) => MediaQuery.withClampedTextScaling(
-        minScaleFactor: 0.85,
-        maxScaleFactor: 1.15,
-        child: child!,
-      ),
+      builder:
+          (context, child) => MediaQuery.withClampedTextScaling(
+            minScaleFactor: 0.85,
+            maxScaleFactor: 1.15,
+            child: InternetConnectionPopup(
+              navigatorKey: _navigatorKey,
+              child: child!,
+            ),
+          ),
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

@@ -26,6 +26,8 @@ class _LoginFormState extends State<LoginForm> {
 
   bool obscurePassword = true;
   bool isLoading = false;
+  String? emailError;
+  String? passwordError;
 
   @override
   void dispose() {
@@ -38,10 +40,12 @@ class _LoginFormState extends State<LoginForm> {
     String email = emailController.text.trim();
     String password = passwordController.text.trim();
 
+    setState(() {
+      emailError = email.isEmpty ? 'Email harus diisi' : null;
+      passwordError = password.isEmpty ? 'Password harus diisi' : null;
+    });
+
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Email dan password harus diisi')),
-      );
       return;
     }
 
@@ -88,9 +92,13 @@ class _LoginFormState extends State<LoginForm> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      setState(() {
+        if (e.code == 'invalid-email' || e.code == 'user-not-found') {
+          emailError = message;
+        } else {
+          passwordError = message;
+        }
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -195,7 +203,16 @@ class _LoginFormState extends State<LoginForm> {
             controller: emailController,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
-            decoration: AuthStyle.input(hint: 'Email'),
+            onChanged: (_) {
+              if (emailError != null) {
+                setState(() {
+                  emailError = null;
+                });
+              }
+            },
+            decoration: AuthStyle.input(
+              hint: 'Email',
+            ).copyWith(errorText: emailError),
           ),
 
           const SizedBox(height: 12),
@@ -204,6 +221,13 @@ class _LoginFormState extends State<LoginForm> {
           TextField(
             controller: passwordController,
             obscureText: obscurePassword,
+            onChanged: (_) {
+              if (passwordError != null) {
+                setState(() {
+                  passwordError = null;
+                });
+              }
+            },
             decoration: AuthStyle.input(
               hint: 'Password',
               suffixIcon: IconButton(
@@ -219,7 +243,7 @@ class _LoginFormState extends State<LoginForm> {
                   color: Colors.grey,
                 ),
               ),
-            ),
+            ).copyWith(errorText: passwordError),
           ),
 
           const SizedBox(height: 36),
